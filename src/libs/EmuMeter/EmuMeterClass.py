@@ -25,6 +25,7 @@ class EmuMeter:
                             'Powerfactor L2 [1/100]',
                             'Powerfactor L3 [1/100]',
                             'Frequency [1/10 Hz]']
+    MAX_READBLOCK_SIZE = 3000
 
     currentIndex = None
     currentTime = None
@@ -99,3 +100,46 @@ class EmuMeter:
         stopIndex = self.currentIndex - indexToStop
 
         return int(startIndex), int(stopIndex)
+    
+    def splitIndexRange(self, startIndex: int, stopIndex: int, readBlockSize: int = MAX_READBLOCK_SIZE):
+        """splits a range of idexes in to specified blocks
+
+        Args:
+            startIndex (int): first index
+            stopIndex (int): last index
+            readBlockSize (int, optional): Size of request blocks sent to meter. Max is 3000. Defaults to MAX_READBLOCK_SIZE.
+
+        Returns:
+            int[[]]: array of start/stop arrays for each split
+        """
+        lenIndex = stopIndex - startIndex
+        numOfSimpleReads = math.ceil(lenIndex / readBlockSize)
+
+        blocks2Read = []
+        for i in range(numOfSimpleReads):
+            if not i >= (numOfSimpleReads - 1): 
+                # add full block
+                blocks2Read.append([(i * readBlockSize) + startIndex, ((i + 1) * readBlockSize) + startIndex - 1])
+            else:
+                # add remaining
+                blocks2Read.append([(i * readBlockSize) + startIndex, stopIndex])
+        return blocks2Read
+    
+    def largeRead(self, startEpochTime: int, stopEpochTime: int, readBlockSize: int = MAX_READBLOCK_SIZE):
+        """Read all entries in a range of epoch time. No size limit, exept what is available on the meter.
+
+        Args:
+            startEpochTime (int): startTime in epoch
+            stopEpochTime (int): stopTime in epoch
+            readBlockSize (int, optional): Size of request blocks sent to meter. Max is 3000. Defaults to MAX_READBLOCK_SIZE.
+
+        Returns:
+            pd.DataFrame: requested data as DataFrame
+        """
+        startIndex, stopIndex = self.calcIndex(startEpochTime, stopEpochTime)
+        blocks2Read = self.splitIndexRange(startIndex, stopIndex, readBlockSize)
+        data = pd.DataFrame()
+        for block in blocks2Read:
+            newData = self.simpleRead(block[0], block[1])
+            data = pd.concat([data, newData])
+        return data

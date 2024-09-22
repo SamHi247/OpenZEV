@@ -56,3 +56,36 @@ class TestIndexCalc:
         _, nowIndex = self.meter.calcIndex(past,now)
         assert nowIndex == self.meter.currentIndex
         
+class TestSplitIndexRange:
+    meter = initMeter()
+
+    def test_split(self):
+        indexRange = self.meter.splitIndexRange(10,20,4)
+        assert indexRange == [[10,13],[14,17],[18,20]]
+
+class TestLargeRead:
+    meter = initMeter()
+
+    def test_readLen(self):
+        stopTime = time.time()
+        startTime = stopTime - (4 * 60 * 60)
+        data = self.meter.largeRead(startTime, stopTime, 4)
+        assert 17 == data.shape[0]
+
+    def test_correctIndex(self):
+        stopTime = time.time()
+        startTime = stopTime - (4 * 60 * 60)
+        data = self.meter.largeRead(startTime, stopTime, 4)
+        expFirstIndex, expLastIndex = self.meter.calcIndex(startTime, stopTime)
+        assert [data['Index'].iloc[0],data['Index'].iloc[-1]] == [expFirstIndex,expLastIndex]
+
+    def test_correctTime(self):
+        stopTime = time.time()
+        startTime = stopTime - (4 * 60 * 60)
+        data = self.meter.largeRead(startTime, stopTime, 4)
+        startTimeSmaller = (startTime >= data['Timestamp'].iloc[0].timestamp())
+        stopTimeSmaller = (stopTime >= data['Timestamp'].iloc[-1].timestamp())
+        startTimeIn15 = ((startTime - data['Timestamp'].iloc[0].timestamp()) <= (15 * 60))
+        stopTimeIn15 = ((stopTime - data['Timestamp'].iloc[-1].timestamp()) <= (15 * 60))
+        print(f"1:{startTimeSmaller},2:{stopTimeSmaller},3:{startTimeIn15},4:{stopTimeIn15}")
+        assert startTimeSmaller and stopTimeSmaller and startTimeIn15 and stopTimeIn15
