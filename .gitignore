@@ -165,3 +165,7 @@ cython_debug/
 *.code-workspace
 *.secret
 *.vscode
+
+#ARCADIA capella
+ARCADIAmodel/.metadata/
+ARCADIAmodel/MDEReport.html
