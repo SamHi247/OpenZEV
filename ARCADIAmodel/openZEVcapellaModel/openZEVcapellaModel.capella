@@ -12,6 +12,7 @@
     xmlns:org.polarsys.capella.core.data.information="http://www.polarsys.org/capella/core/information/6.0.0"
     xmlns:org.polarsys.capella.core.data.information.datatype="http://www.polarsys.org/capella/core/information/datatype/6.0.0"
     xmlns:org.polarsys.capella.core.data.information.datavalue="http://www.polarsys.org/capella/core/information/datavalue/6.0.0"
+    xmlns:org.polarsys.capella.core.data.interaction="http://www.polarsys.org/capella/core/interaction/6.0.0"
     xmlns:org.polarsys.capella.core.data.la="http://www.polarsys.org/capella/core/la/6.0.0"
     xmlns:org.polarsys.capella.core.data.oa="http://www.polarsys.org/capella/core/oa/6.0.0"
     xmlns:org.polarsys.capella.core.data.pa="http://www.polarsys.org/capella/core/pa/6.0.0"
@@ -42,10 +43,36 @@
       <ownedFunctionPkg xsi:type="org.polarsys.capella.core.data.oa:OperationalActivityPkg"
           id="7fd35295-a9af-4440-b310-c2f96807c1b3" name="Operational Activities">
         <ownedOperationalActivities xsi:type="org.polarsys.capella.core.data.oa:OperationalActivity"
-            id="4919d106-4163-4586-8676-7d39e785cb11" name="Root Operational Activity"/>
+            id="4919d106-4163-4586-8676-7d39e785cb11" name="Root Operational Activity">
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.oa:OperationalActivity"
+              id="8be1cf27-208d-4b0a-8c9a-bc7fc4e89e28" name="Abrechnung für Verbraucher erstellen">
+            <ownedFunctions xsi:type="org.polarsys.capella.core.data.oa:OperationalActivity"
+                id="da27f041-aeb9-4d22-ac65-60ce5753e01b" name="Energiefluss in Abhängigkeit der Zeit berechnen">
+              <ownedFunctions xsi:type="org.polarsys.capella.core.data.oa:OperationalActivity"
+                  id="af5b6222-4d8b-47bd-ab88-a7ee59274740" name="Zähler auslesen"/>
+            </ownedFunctions>
+          </ownedFunctions>
+        </ownedOperationalActivities>
       </ownedFunctionPkg>
       <ownedAbstractCapabilityPkg xsi:type="org.polarsys.capella.core.data.oa:OperationalCapabilityPkg"
-          id="155f0185-c0b1-47cd-9349-c9e73c266fc2" name="Operational Capabilities"/>
+          id="155f0185-c0b1-47cd-9349-c9e73c266fc2" name="Operational Capabilities">
+        <ownedOperationalCapabilities xsi:type="org.polarsys.capella.core.data.oa:OperationalCapability"
+            id="db2c2ccf-9420-4400-9ede-07558553f8fc" name="Energie, -eigenverbrauch, -einspeisung und -bezug berechnen">
+          <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
+              id="5cfc9a2e-faa4-4de5-b9a4-691f7a02f2df" involved="#98599329-a95d-4d35-95d0-55ca4cc7b43d"/>
+          <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
+              id="e5108699-f4d0-4ee0-911a-3c40d40972c0" involved="#11525b36-ed15-4f5a-aafb-eabe70c7bc82"/>
+        </ownedOperationalCapabilities>
+        <ownedOperationalCapabilities xsi:type="org.polarsys.capella.core.data.oa:OperationalCapability"
+            id="3fcee22f-edf2-43ee-bcb8-f0c7bdaf6cc3" name="Abrechnung erstellen">
+          <includes xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityInclude"
+              id="d158d06f-8782-4ead-a52e-22112d63b45e" included="#db2c2ccf-9420-4400-9ede-07558553f8fc"/>
+          <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
+              id="4c5e6af2-130b-4d2d-b218-0bcb22bc3b0f" involved="#1aa45edd-f8b7-4766-8e40-f1aa9a708c20"/>
+          <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
+              id="08ca0c41-11e2-4668-b431-4f83ff2ac129" involved="#aebaa740-81e5-448c-802f-24572490f5a8"/>
+        </ownedOperationalCapabilities>
+      </ownedAbstractCapabilityPkg>
       <ownedInterfacePkg xsi:type="org.polarsys.capella.core.data.cs:InterfacePkg"
           id="9411e557-9654-4c28-abd1-77eba11607c5" name="Interfaces"/>
       <ownedDataPkg xsi:type="org.polarsys.capella.core.data.information:DataPkg"
@@ -53,7 +80,29 @@
       <ownedRolePkg xsi:type="org.polarsys.capella.core.data.oa:RolePkg" id="6a96507b-6601-42a6-92ad-eeab0e8ccf4a"
           name="Roles"/>
       <ownedEntityPkg xsi:type="org.polarsys.capella.core.data.oa:EntityPkg" id="88ea18ae-70bb-4eac-b737-eec7be18376e"
-          name="Operational Entities"/>
+          name="Operational Entities">
+        <ownedParts xsi:type="org.polarsys.capella.core.data.cs:Part" id="c2d2a8ac-fa0b-4a1a-9f82-c1cff4260d9d"
+            name="Haus" abstractType="#a27cab65-b068-4d11-b4dd-107136cbd463"/>
+        <ownedParts xsi:type="org.polarsys.capella.core.data.cs:Part" id="9d93eb16-9769-4753-ac80-5273c1fa66cc"
+            name="Besitzer" abstractType="#11525b36-ed15-4f5a-aafb-eabe70c7bc82"/>
+        <ownedParts xsi:type="org.polarsys.capella.core.data.cs:Part" id="2293e31c-85d1-48f7-80eb-02a7f45b45d3"
+            name="Energiezähler" abstractType="#98599329-a95d-4d35-95d0-55ca4cc7b43d"/>
+        <ownedParts xsi:type="org.polarsys.capella.core.data.cs:Part" id="a190e9d7-c372-4eac-ac04-5d117b46d889"
+            name="Elektrizitätswerk" abstractType="#1aa45edd-f8b7-4766-8e40-f1aa9a708c20"/>
+        <ownedEntities xsi:type="org.polarsys.capella.core.data.oa:Entity" id="a27cab65-b068-4d11-b4dd-107136cbd463"
+            name="Haus">
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="68c4e1ab-0b54-472a-8be9-b6ffb0505461"
+              name="Verbraucher" abstractType="#aebaa740-81e5-448c-802f-24572490f5a8"/>
+          <ownedEntities xsi:type="org.polarsys.capella.core.data.oa:Entity" id="aebaa740-81e5-448c-802f-24572490f5a8"
+              name="Verbraucher" actor="true" human="true"/>
+        </ownedEntities>
+        <ownedEntities xsi:type="org.polarsys.capella.core.data.oa:Entity" id="11525b36-ed15-4f5a-aafb-eabe70c7bc82"
+            name="Besitzer" actor="true" human="true"/>
+        <ownedEntities xsi:type="org.polarsys.capella.core.data.oa:Entity" id="98599329-a95d-4d35-95d0-55ca4cc7b43d"
+            name="Energiezähler"/>
+        <ownedEntities xsi:type="org.polarsys.capella.core.data.oa:Entity" id="1aa45edd-f8b7-4766-8e40-f1aa9a708c20"
+            name="Elektrizitätswerk"/>
+      </ownedEntityPkg>
     </ownedArchitectures>
     <ownedArchitectures xsi:type="org.polarsys.capella.core.data.ctx:SystemAnalysis"
         id="bfcf40d2-1f19-4446-babb-95e2710d6b59" name="System Analysis">
