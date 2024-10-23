@@ -1066,6 +1066,32 @@
                 id="42d6e8db-d711-4f62-9a29-8d3ec49c1d4c" targetElement="#dd4dd14e-f946-4c29-a632-ce1187540f13"
                 sourceElement="#1a4a3453-bc62-4773-ae58-31ec024bedd6"/>
           </ownedFunctions>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="4b75c648-8944-4757-ab00-f29762e0588e" name="Zähler auslesen"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="bfc5498f-fd1b-43ec-861e-3c1856867ba0" name="ausgelesene Daten bereinigen"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="44ee672e-fdf9-4f2b-95eb-b8af8ba31561" name="Energiedaten speichern"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="ebd3f8b3-89de-4035-b408-df4513954dac" name="Energiedaten zur verfügung stellen"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="23f9e17a-c679-4a17-91a3-62b41f0bef85" name="Historische Daten und Zählerdaten fusionieren"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="6d72673b-c27a-4b61-9e82-84c650b67a36" name="Neue Daten in Datenbank ablegen"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="29d5dc29-3f51-4bd4-9bed-ca68845c4d2c" name="Zählerdaten speichern"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="0b4cdd8b-8755-45e9-9415-1b6b0aa25f3b" name="Anfragen generieren"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="f2ef03ff-4265-4709-aa0a-c34ce4f91a5f" name="aktueller Stand abspeichern"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="e3ab4375-9b96-4ee0-b5d9-5ab98676067b" name="alte Session abruffen"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="027eed64-496c-4669-ab01-20ea2ed46ada" name="neue Zähler erfassen"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="67045918-61b0-4dac-9fce-e08a4dfbb624" name="Daten zusammentragen"/>
+          <ownedFunctions xsi:type="org.polarsys.capella.core.data.la:LogicalFunction"
+              id="56c5e254-1bf3-4ac7-ba12-209208eb5f87" name="Abrechnungsformular erstellen"/>
           <ownedFunctionRealizations xsi:type="org.polarsys.capella.core.data.fa:FunctionRealization"
               id="5b8462a7-af9b-4ee0-9efa-d099898c1e95" targetElement="#5478bdb1-202b-4b23-980b-47a8324d1fbe"
               sourceElement="#8ccd00e5-106d-4477-8ecb-13205cd80944"/>
@@ -1145,9 +1171,83 @@
             name="Besitzer" abstractType="#3c92efb8-c647-4fe1-9355-ead4ca66e44e"/>
         <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
             id="b40fb64f-319f-4a48-b9ed-25ab09c34b92" name="Logical System">
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="b79ed01b-1a4e-40b7-bcaa-4ecdef766c73"
+              name="Zähler Interface" abstractType="#172bf739-ce62-41a8-b1eb-bcfd292f1530"/>
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="12803360-fee3-48a0-bffa-13fa22b5d147"
+              name="Zähler Manager" abstractType="#de4df733-c7ba-4e0c-bc1b-058ae9b1286a"/>
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="0299f4e6-8ef5-4d38-bdbb-1b530c8cd26f"
+              name="Datenbank" abstractType="#532772ea-4aab-42b6-9f9d-4ea7479afb6e"/>
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="3c3a6ae0-3ef9-4e87-8420-193577db4751"
+              name="Energiedaten Rechner" abstractType="#357e9f7b-45ea-474e-a78f-41ffeb5cb637"/>
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="d4a1b22f-be1d-41ba-bf9a-b16dea15374c"
+              name="Abrechungsgenerator" abstractType="#26fcd4d5-338b-49f1-bd46-5587bcdc1253"/>
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="a0461a51-3c41-4f7a-a7e7-2734f22907d3"
+              name="User Interface" abstractType="#12518e63-c186-420a-88ea-07b13d55a033"/>
+          <ownedFeatures xsi:type="org.polarsys.capella.core.data.cs:Part" id="1f67b35e-268d-485b-a4d0-bbd81b471f37"
+              name="Session Control" abstractType="#6a27deae-6f19-42b0-9cb2-107703b5fef3"/>
           <ownedComponentRealizations xsi:type="org.polarsys.capella.core.data.cs:ComponentRealization"
               id="82097577-0948-4aef-a753-c1f393b6337c" targetElement="#6ead088a-2479-49ed-840d-d6465b470c49"
               sourceElement="#b40fb64f-319f-4a48-b9ed-25ab09c34b92"/>
+          <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
+              id="172bf739-ce62-41a8-b1eb-bcfd292f1530" name="Zähler Interface">
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="db54cfcb-6f2d-4c3a-97f7-e169fccbdbf2" targetElement="#4b75c648-8944-4757-ab00-f29762e0588e"
+                sourceElement="#172bf739-ce62-41a8-b1eb-bcfd292f1530"/>
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="fb9d1f24-02a6-4167-b4da-7722bc541e4b" targetElement="#bfc5498f-fd1b-43ec-861e-3c1856867ba0"
+                sourceElement="#172bf739-ce62-41a8-b1eb-bcfd292f1530"/>
+          </ownedLogicalComponents>
+          <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
+              id="de4df733-c7ba-4e0c-bc1b-058ae9b1286a" name="Zähler Manager">
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="c5cadfc9-6b7e-43a7-8785-478047d55a68" targetElement="#23f9e17a-c679-4a17-91a3-62b41f0bef85"
+                sourceElement="#de4df733-c7ba-4e0c-bc1b-058ae9b1286a"/>
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="d7e671f7-fc5e-4ba4-8157-0b6e94f9a2de" targetElement="#6d72673b-c27a-4b61-9e82-84c650b67a36"
+                sourceElement="#de4df733-c7ba-4e0c-bc1b-058ae9b1286a"/>
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="a27b9985-7d7a-43b5-bb04-9d72f249a708" targetElement="#29d5dc29-3f51-4bd4-9bed-ca68845c4d2c"
+                sourceElement="#de4df733-c7ba-4e0c-bc1b-058ae9b1286a"/>
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="2fd2acd4-357e-4739-bf90-9e8c27252453" targetElement="#0b4cdd8b-8755-45e9-9415-1b6b0aa25f3b"
+                sourceElement="#de4df733-c7ba-4e0c-bc1b-058ae9b1286a"/>
+          </ownedLogicalComponents>
+          <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
+              id="532772ea-4aab-42b6-9f9d-4ea7479afb6e" name="Datenbank">
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="7c1960d3-2d6a-4c4b-97e2-06e718303a06" targetElement="#44ee672e-fdf9-4f2b-95eb-b8af8ba31561"
+                sourceElement="#532772ea-4aab-42b6-9f9d-4ea7479afb6e"/>
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="6115f20c-b943-48a0-9870-993e740061dc" targetElement="#ebd3f8b3-89de-4035-b408-df4513954dac"
+                sourceElement="#532772ea-4aab-42b6-9f9d-4ea7479afb6e"/>
+          </ownedLogicalComponents>
+          <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
+              id="357e9f7b-45ea-474e-a78f-41ffeb5cb637" name="Energiedaten Rechner">
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="74583894-4ebc-4368-a132-8a36b6ada357" targetElement="#67045918-61b0-4dac-9fce-e08a4dfbb624"
+                sourceElement="#357e9f7b-45ea-474e-a78f-41ffeb5cb637"/>
+          </ownedLogicalComponents>
+          <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
+              id="26fcd4d5-338b-49f1-bd46-5587bcdc1253" name="Abrechungsgenerator">
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="e2e70ba4-d47b-4992-9983-ea2f5bbb7caf" targetElement="#56c5e254-1bf3-4ac7-ba12-209208eb5f87"
+                sourceElement="#26fcd4d5-338b-49f1-bd46-5587bcdc1253"/>
+          </ownedLogicalComponents>
+          <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
+              id="12518e63-c186-420a-88ea-07b13d55a033" name="User Interface">
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="e4bc2162-4a86-4171-a052-db2dac70882d" targetElement="#027eed64-496c-4669-ab01-20ea2ed46ada"
+                sourceElement="#12518e63-c186-420a-88ea-07b13d55a033"/>
+          </ownedLogicalComponents>
+          <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
+              id="6a27deae-6f19-42b0-9cb2-107703b5fef3" name="Session Control">
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="edc0dc75-47c1-4036-8960-39bf91a7f0bb" targetElement="#f2ef03ff-4265-4709-aa0a-c34ce4f91a5f"
+                sourceElement="#6a27deae-6f19-42b0-9cb2-107703b5fef3"/>
+            <ownedFunctionalAllocation xsi:type="org.polarsys.capella.core.data.fa:ComponentFunctionalAllocation"
+                id="5c9918e0-53dc-46a4-972d-1e81bfab0f39" targetElement="#e3ab4375-9b96-4ee0-b5d9-5ab98676067b"
+                sourceElement="#6a27deae-6f19-42b0-9cb2-107703b5fef3"/>
+          </ownedLogicalComponents>
         </ownedLogicalComponents>
         <ownedLogicalComponents xsi:type="org.polarsys.capella.core.data.la:LogicalComponent"
             id="bd00ce1c-1817-40e1-8ffa-a1dba5d5ed69" name="Haus" actor="true">
