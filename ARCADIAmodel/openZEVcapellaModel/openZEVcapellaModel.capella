@@ -144,18 +144,15 @@
       <ownedAbstractCapabilityPkg xsi:type="org.polarsys.capella.core.data.oa:OperationalCapabilityPkg"
           id="155f0185-c0b1-47cd-9349-c9e73c266fc2" name="Operational Capabilities">
         <ownedOperationalCapabilities xsi:type="org.polarsys.capella.core.data.oa:OperationalCapability"
-            id="db2c2ccf-9420-4400-9ede-07558553f8fc" name="Energie, -eigenverbrauch, -einspeisung und -bezug berechnen">
-          <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
-              id="e5108699-f4d0-4ee0-911a-3c40d40972c0" involved="#11525b36-ed15-4f5a-aafb-eabe70c7bc82"/>
-        </ownedOperationalCapabilities>
-        <ownedOperationalCapabilities xsi:type="org.polarsys.capella.core.data.oa:OperationalCapability"
-            id="3fcee22f-edf2-43ee-bcb8-f0c7bdaf6cc3" name="Abrechnung erstellen">
-          <includes xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityInclude"
-              id="d158d06f-8782-4ead-a52e-22112d63b45e" included="#db2c2ccf-9420-4400-9ede-07558553f8fc"/>
+            id="3fcee22f-edf2-43ee-bcb8-f0c7bdaf6cc3" name="generate invoice">
           <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
               id="4c5e6af2-130b-4d2d-b218-0bcb22bc3b0f" involved="#1aa45edd-f8b7-4766-8e40-f1aa9a708c20"/>
           <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
               id="08ca0c41-11e2-4668-b431-4f83ff2ac129" involved="#aebaa740-81e5-448c-802f-24572490f5a8"/>
+          <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
+              id="290f41e0-a1bc-4709-81fa-0b2b6d17a346" involved="#a27cab65-b068-4d11-b4dd-107136cbd463"/>
+          <ownedEntityOperationalCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.oa:EntityOperationalCapabilityInvolvement"
+              id="45d90987-0594-4e20-b379-f8373339d210" involved="#11525b36-ed15-4f5a-aafb-eabe70c7bc82"/>
         </ownedOperationalCapabilities>
       </ownedAbstractCapabilityPkg>
       <ownedInterfacePkg xsi:type="org.polarsys.capella.core.data.cs:InterfacePkg"
@@ -469,21 +466,25 @@
       <ownedAbstractCapabilityPkg xsi:type="org.polarsys.capella.core.data.ctx:CapabilityPkg"
           id="a274a40e-76f5-4cee-9023-338a80640aad" name="Capabilities">
         <ownedCapabilities xsi:type="org.polarsys.capella.core.data.ctx:Capability"
-            id="af6ffcea-4667-4eda-98ce-5cd614751b45" name="Energie, -eigenverbrauch, -einspeisung und -bezug berechnen">
-          <ownedAbstractCapabilityRealizations xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityRealization"
-              id="222a9753-7443-4419-92cd-f5b42a156a80" targetElement="#db2c2ccf-9420-4400-9ede-07558553f8fc"
-              sourceElement="#af6ffcea-4667-4eda-98ce-5cd614751b45"/>
+            id="d9feb74a-3030-4f46-9374-b96107437825" name="read meter logs">
+          <ownedCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.ctx:CapabilityInvolvement"
+              id="4a4e082a-3d01-4847-8f45-49ac11e697bd" involved="#6ead088a-2479-49ed-840d-d6465b470c49"/>
+          <ownedCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.ctx:CapabilityInvolvement"
+              id="e1c70439-6ffe-4cb0-9ac7-5f498d298122" involved="#7c01c074-0628-4a09-b115-ec486b836ddb"/>
         </ownedCapabilities>
         <ownedCapabilities xsi:type="org.polarsys.capella.core.data.ctx:Capability"
-            id="37a540c6-0501-4311-978d-963340ba792a" name="Abrechnung erstellen">
-          <ownedTraces xsi:type="org.polarsys.capella.core.data.capellacommon:TransfoLink"
-              id="8596827f-f9d6-4818-ba06-a4151ac548bd" targetElement="#d158d06f-8782-4ead-a52e-22112d63b45e"
-              sourceElement="#5b76c7f7-a6df-4af0-a1f9-bee98ae0124c"/>
-          <includes xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityInclude"
-              id="5b76c7f7-a6df-4af0-a1f9-bee98ae0124c" included="#af6ffcea-4667-4eda-98ce-5cd614751b45"/>
-          <ownedAbstractCapabilityRealizations xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityRealization"
-              id="f54c592b-7a13-45f0-bf17-3109c68ce7d2" targetElement="#3fcee22f-edf2-43ee-bcb8-f0c7bdaf6cc3"
-              sourceElement="#37a540c6-0501-4311-978d-963340ba792a"/>
+            id="16cb5829-7716-4d2d-a99c-8434baaa1a1b" name="calculate usage data">
+          <ownedCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.ctx:CapabilityInvolvement"
+              id="dcf6e3ea-f487-47b6-b75a-c8d43800265b" involved="#6ead088a-2479-49ed-840d-d6465b470c49"/>
+          <ownedCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.ctx:CapabilityInvolvement"
+              id="4c27c4f4-d8ba-4abb-8fbb-da0a4ab9359d" involved="#317603f7-dd62-441d-9195-3105094145e8"/>
+        </ownedCapabilities>
+        <ownedCapabilities xsi:type="org.polarsys.capella.core.data.ctx:Capability"
+            id="610f8a75-ea8c-4a0d-84af-9c43ca340042" name="generate invoice">
+          <ownedCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.ctx:CapabilityInvolvement"
+              id="d98e2f85-55bb-40f9-8888-21c80e080e69" involved="#6ead088a-2479-49ed-840d-d6465b470c49"/>
+          <ownedCapabilityInvolvements xsi:type="org.polarsys.capella.core.data.ctx:CapabilityInvolvement"
+              id="dab4e8dd-a8a4-4396-a180-9f70729596ec" involved="#317603f7-dd62-441d-9195-3105094145e8"/>
         </ownedCapabilities>
       </ownedAbstractCapabilityPkg>
       <ownedInterfacePkg xsi:type="org.polarsys.capella.core.data.cs:InterfacePkg"
@@ -666,15 +667,17 @@
       <ownedMissionPkg xsi:type="org.polarsys.capella.core.data.ctx:MissionPkg" id="f16c440c-eab6-4b70-bc80-74669cfe1be2"
           name="Missions">
         <ownedTraces xsi:type="org.polarsys.capella.core.data.capellacommon:TransfoLink"
-            id="fd12884d-ec48-47a0-b0ab-78452109c01e" targetElement="#db2c2ccf-9420-4400-9ede-07558553f8fc"
-            sourceElement="#606d17a2-f91d-4a3c-b902-0de0f4bf1b9f"/>
-        <ownedTraces xsi:type="org.polarsys.capella.core.data.capellacommon:TransfoLink"
-            id="05e942c7-6903-47be-bd0d-d78f954c2a0d" targetElement="#3fcee22f-edf2-43ee-bcb8-f0c7bdaf6cc3"
-            sourceElement="#05ba2bb3-4652-4d56-933a-53dc7d29be6b"/>
-        <ownedMissions xsi:type="org.polarsys.capella.core.data.ctx:Mission" id="606d17a2-f91d-4a3c-b902-0de0f4bf1b9f"
-            name="Energie, -eigenverbrauch, -einspeisung und -bezug berechnen"/>
-        <ownedMissions xsi:type="org.polarsys.capella.core.data.ctx:Mission" id="05ba2bb3-4652-4d56-933a-53dc7d29be6b"
-            name="Abrechnung erstellen"/>
+            id="21076fea-7f8c-4f71-8662-5d22b4e78a08" targetElement="#3fcee22f-edf2-43ee-bcb8-f0c7bdaf6cc3"
+            sourceElement="#03030900-24ec-431f-8911-d088eeb56364"/>
+        <ownedMissions xsi:type="org.polarsys.capella.core.data.ctx:Mission" id="03030900-24ec-431f-8911-d088eeb56364"
+            name="generate invoice">
+          <ownedCapabilityExploitations xsi:type="org.polarsys.capella.core.data.ctx:CapabilityExploitation"
+              id="5a430c61-59a4-4f27-a5fa-66b916369634" capability="#d9feb74a-3030-4f46-9374-b96107437825"/>
+          <ownedCapabilityExploitations xsi:type="org.polarsys.capella.core.data.ctx:CapabilityExploitation"
+              id="bc0e2e2a-59e7-4d10-82f3-504e6db8523a" capability="#16cb5829-7716-4d2d-a99c-8434baaa1a1b"/>
+          <ownedCapabilityExploitations xsi:type="org.polarsys.capella.core.data.ctx:CapabilityExploitation"
+              id="655f14d8-3682-430c-88de-b9532b17cc31" capability="#610f8a75-ea8c-4a0d-84af-9c43ca340042"/>
+        </ownedMissions>
       </ownedMissionPkg>
       <ownedOperationalAnalysisRealizations xsi:type="org.polarsys.capella.core.data.ctx:OperationalAnalysisRealization"
           id="8a509b22-4b56-4249-b897-7adf7426f4be" targetElement="#3a235063-7a2f-40cd-adc1-83488dcc5606"
@@ -1304,7 +1307,71 @@
         </ownedLogicalFunctions>
       </ownedFunctionPkg>
       <ownedAbstractCapabilityPkg xsi:type="org.polarsys.capella.core.data.la:CapabilityRealizationPkg"
-          id="7abecee8-01d6-44f4-a46b-ac31d5e3b4af" name="Capabilities"/>
+          id="7abecee8-01d6-44f4-a46b-ac31d5e3b4af" name="Capabilities">
+        <ownedCapabilityRealizations xsi:type="org.polarsys.capella.core.data.la:CapabilityRealization"
+            id="20efca6a-f8e8-494e-82f3-200502dc8b1d" name="read meter logs">
+          <ownedTraces xsi:type="org.polarsys.capella.core.data.capellacommon:TransfoLink"
+              id="a7f6b8db-0010-4c9c-ab1e-5c0fc2c01a20" targetElement="#4a4e082a-3d01-4847-8f45-49ac11e697bd"
+              sourceElement="#8b493d88-c159-4cb1-a661-f4513a0b8a9f"/>
+          <ownedTraces xsi:type="org.polarsys.capella.core.data.capellacommon:TransfoLink"
+              id="ed0bc218-df81-436b-81df-44d6ef26e764" targetElement="#e1c70439-6ffe-4cb0-9ac7-5f498d298122"
+              sourceElement="#baa6727e-a266-4890-b859-9bb861dc3f63"/>
+          <extends xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityExtend"
+              id="34a17f21-d191-4361-b8f8-0ab509bf490e" extended="#58ee6afb-4886-48ba-a5f0-54fce210c3ab"/>
+          <extends xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityExtend"
+              id="53142618-fa28-434e-9a6a-15d47226fa8f" extended="#8ff424da-e660-4464-a0be-cb9945113a5f"/>
+          <ownedAbstractCapabilityRealizations xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityRealization"
+              id="075c0b59-275f-42c0-a8fd-ea344cb43788" targetElement="#d9feb74a-3030-4f46-9374-b96107437825"
+              sourceElement="#20efca6a-f8e8-494e-82f3-200502dc8b1d"/>
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="8b493d88-c159-4cb1-a661-f4513a0b8a9f" involved="#b40fb64f-319f-4a48-b9ed-25ab09c34b92"/>
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="baa6727e-a266-4890-b859-9bb861dc3f63" involved="#36349f9d-8a0c-44e6-bad7-6e93e05aa8f8"/>
+        </ownedCapabilityRealizations>
+        <ownedCapabilityRealizations xsi:type="org.polarsys.capella.core.data.la:CapabilityRealization"
+            id="7b152093-c47c-40a1-aca5-81bb4fbb3514" name="calculate usage data">
+          <ownedTraces xsi:type="org.polarsys.capella.core.data.capellacommon:TransfoLink"
+              id="f132dff2-cfa0-44d2-a7e3-087a9c159f4f" targetElement="#dcf6e3ea-f487-47b6-b75a-c8d43800265b"
+              sourceElement="#3065899e-5575-4b54-9dc5-9246d8b5eacf"/>
+          <extends xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityExtend"
+              id="c52ce0ca-b5a0-4c64-8560-5ad07695a512" extended="#3fa74295-66a7-40ba-8df6-c585a3f80422"/>
+          <ownedAbstractCapabilityRealizations xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityRealization"
+              id="93c433f2-5b26-4c57-9f17-30188e6b77c2" targetElement="#16cb5829-7716-4d2d-a99c-8434baaa1a1b"
+              sourceElement="#7b152093-c47c-40a1-aca5-81bb4fbb3514"/>
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="3065899e-5575-4b54-9dc5-9246d8b5eacf" involved="#b40fb64f-319f-4a48-b9ed-25ab09c34b92"/>
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="4aaddfaf-bf2a-4a28-aeb9-f26368a66aab" involved="#50d4a77f-d5d8-481d-886e-881e80fbb8e8"/>
+        </ownedCapabilityRealizations>
+        <ownedCapabilityRealizations xsi:type="org.polarsys.capella.core.data.la:CapabilityRealization"
+            id="c48073a4-85ac-4893-b332-4f954f8ea2e4" name="generate invoice">
+          <ownedTraces xsi:type="org.polarsys.capella.core.data.capellacommon:TransfoLink"
+              id="29d1051b-3c80-4129-93d8-fa57962b6ef9" targetElement="#d98e2f85-55bb-40f9-8888-21c80e080e69"
+              sourceElement="#789d8ee5-9422-400d-95fe-3a9960883b91"/>
+          <ownedAbstractCapabilityRealizations xsi:type="org.polarsys.capella.core.data.interaction:AbstractCapabilityRealization"
+              id="7e6b1de3-2c8e-410e-b657-b8ced9e80d77" targetElement="#610f8a75-ea8c-4a0d-84af-9c43ca340042"
+              sourceElement="#c48073a4-85ac-4893-b332-4f954f8ea2e4"/>
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="789d8ee5-9422-400d-95fe-3a9960883b91" involved="#b40fb64f-319f-4a48-b9ed-25ab09c34b92"/>
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="e825bf33-378d-4dfe-be25-594ae00d81b9" involved="#8b601ae6-4b41-41f1-a96a-ff0226af252f"/>
+        </ownedCapabilityRealizations>
+        <ownedCapabilityRealizations xsi:type="org.polarsys.capella.core.data.la:CapabilityRealization"
+            id="58ee6afb-4886-48ba-a5f0-54fce210c3ab" name="comunicate with meter">
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="368c183a-693b-452b-8194-3fc0e9e5bf35" involved="#7666584a-e613-4d0b-aeb5-0c0f2232d996"/>
+        </ownedCapabilityRealizations>
+        <ownedCapabilityRealizations xsi:type="org.polarsys.capella.core.data.la:CapabilityRealization"
+            id="8ff424da-e660-4464-a0be-cb9945113a5f" name="cache meter data">
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="e1fb6de8-a46a-4bec-902a-0ebf4a85cf60" involved="#a7ac1419-8caa-48e1-b2f3-bbf7b06437dc"/>
+        </ownedCapabilityRealizations>
+        <ownedCapabilityRealizations xsi:type="org.polarsys.capella.core.data.la:CapabilityRealization"
+            id="3fa74295-66a7-40ba-8df6-c585a3f80422" name="get info from owner">
+          <ownedCapabilityRealizationInvolvements xsi:type="org.polarsys.capella.core.data.capellacommon:CapabilityRealizationInvolvement"
+              id="dace35b7-ba3d-429e-9c0c-6da7e46fb18f" involved="#1a85edb5-269d-49ab-a7f2-3a47d74f36f0"/>
+        </ownedCapabilityRealizations>
+      </ownedAbstractCapabilityPkg>
       <ownedInterfacePkg xsi:type="org.polarsys.capella.core.data.cs:InterfacePkg"
           id="2aea1279-9f6e-4dca-871f-cfcc44cd17f1" name="Interfaces"/>
       <ownedDataPkg xsi:type="org.polarsys.capella.core.data.information:DataPkg"
