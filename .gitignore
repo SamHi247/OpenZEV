@@ -169,3 +169,4 @@ cython_debug/
 #ARCADIA capella
 ARCADIAmodel/.metadata/
 ARCADIAmodel/MDEReport.html
+ARCADIAmodel/openZEVcapellaModel/*.old*
