@@ -2,16 +2,23 @@ import json
 import pytest
 import time
 from EmuMeterClass import EmuMeter
+from meterClass import Meter
 
 def getHost():
-    with open('src/libs/Meter/testHost.secret', 'r') as file:
-        # load IP-address of a testhose from secret json file.
-        # testHost.secret example content: {"host01": "XXX.XXX.XXX.XXX"}
-        host = json.load(file)["host01"]
+    try:
+        with open('src/libs/Meter/testHost.secret', 'r') as file:
+            # load IP-address of a testhose from secret json file.
+            # testHost.secret example content: {"host01": "XXX.XXX.XXX.XXX"}
+            host = json.load(file)["host01"]
+    except:
+        host = "NA"
 
     return host
 
-meter = EmuMeter(getHost(), readBlockSize=4)
+if not getHost() == "NA":
+    meter = EmuMeter(getHost(), readBlockSize=4)
+else:
+    meter = Meter("testMeter")
 
 def test_meterConnection():
     # test if timestamp of meter is close to system time
