@@ -1,7 +1,7 @@
 import pandas as pd
 import math
 
-from meterClass import TcpMeter
+from libs.Meter.meterClass import TcpMeter
 
 class EmuMeter(TcpMeter):
     LOG_INTERVAL = 15 * 60

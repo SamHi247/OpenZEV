@@ -1,8 +1,8 @@
 import json
 import pytest
 import time
-from EmuMeterClass import EmuMeter
-from meterClass import Meter
+from libs.Meter.EmuMeterClass import EmuMeter
+from libs.Meter.meterClass import Meter
 
 def getHost():
     try:
