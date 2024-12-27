@@ -1,14 +1,17 @@
 import json
 import pandas as pd
 import numpy as np
+import threading
+import math
 
 from libs.Meter.EmuMeterClass import EmuMeter
 
-startTime = 1718056800
-stopTime = 1735081200
+startTime = 1719784800
+stopTime = 1722463200
 solarOwnershipHaus1 = 0
 solarOwnershipHaus2 = 1
 solarOwnershipAllg = 0
+
 
 def getHost(name):
     with open('src/POC_meters.secret', 'r') as file:
@@ -17,51 +20,42 @@ def getHost(name):
         # testHost.secret example content: {"host01": "XXX.XXX.XXX.XXX"}
         return str(json.load(file)[name])
 
-print("reading meters...")
-try:
-    meterdataHome1 = pd.read_pickle(f"cache/Home1_{startTime}_{stopTime}.secret")
-except:
-    home1Meter = EmuMeter(getHost('Haus1'))
-    meterdataHome1 = home1Meter.read(startTime,stopTime)
-    meterdataHome1.to_pickle(f"cache/Home1_{startTime}_{stopTime}.secret")
-print("Home1 done (1/4)")
+def getMeterData(name, startTime, stopTime, results):
+    print(f'Start loading {name} data...')
+    try:
+        data = pd.read_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
+    except:
+        meter = EmuMeter(getHost(name))
+        data = meter.read(startTime,stopTime)
+        data.to_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
 
-try:
-    meterdataHome2 = pd.read_pickle(f"cache/Home2_{startTime}_{stopTime}.secret")
-except:
-    home2Meter = EmuMeter(getHost("Haus2"))
-    meterdataHome2 = home2Meter.read(startTime,stopTime)
-    meterdataHome2.to_pickle(f"cache/Home2_{startTime}_{stopTime}.secret")
-print("Home2 done (2/4)")
+    results[name] = data
+    print(f'Loading of {name} data done.')
 
-try:
-    meterdataAllg = pd.read_pickle(f"cache/Allg_{startTime}_{stopTime}.secret")
-except:
-    allgMeter = EmuMeter(getHost("Allg"))
-    meterdataAllg = allgMeter.read(startTime,stopTime)
-    meterdataAllg.to_pickle(f"cache/Allg_{startTime}_{stopTime}.secret")
-print("Allg done (3/4)")
+names = ['Home1', 'Home2', 'Allg', 'Solar']
+results = {}
+threads = []
 
-try:
-    meterdataSolar = pd.read_pickle(f"cache/Solar_{startTime}_{stopTime}.secret")
-except:
-    solarMeter = EmuMeter(getHost("Solar"))
-    meterdataSolar = solarMeter.read(startTime,stopTime)
-    meterdataSolar.to_pickle(f"cache/Solar_{startTime}_{stopTime}.secret")
-print("Solar done (4/4)")
+for name in names:
+    thread = threading.Thread(target=getMeterData, args=(name, startTime, stopTime, results))
+    threads.append(thread)
+    thread.start()
 
-meterdataHome1.rename(columns={'Energy_Import_Wh': 'Home1_Usage_Wh', 
-                               'Energy_Export_Wh': 'Home1_Prod_Wh'}, inplace=True)
-meterdataHome2.rename(columns={'Energy_Import_Wh': 'Home2_Usage_Wh', 
-                               'Energy_Export_Wh': 'Home2_Prod_Wh'}, inplace=True)
-meterdataAllg.rename(columns={'Energy_Import_Wh': 'Allg_Usage_Wh', 
-                              'Energy_Export_Wh': 'Allg_Prod_Wh'}, inplace=True)
-meterdataSolar.rename(columns={'Energy_Import_Wh': 'Solar_Usage_Wh', 
-                               'Energy_Export_Wh': 'Solar_Prod_Wh'}, inplace=True)
+for thread in threads:
+    thread.join()
 
-meterData = pd.merge(meterdataHome1,meterdataHome2,on='Timestamp',how='outer')
-meterData = pd.merge(meterData,meterdataAllg,on='Timestamp',how='outer')
-meterData = pd.merge(meterData,meterdataSolar,on='Timestamp',how='outer')
+print('Data complete...')
+print('=========================================')
+
+for name in names:
+    results[name].rename(columns={'Energy_Import_Wh': f'{name}_Usage_Wh', 
+                                  'Energy_Export_Wh': f'{name}_Prod_Wh'}, inplace=True)
+
+meterData = pd.merge(results['Home1'],results['Home2'],on='Timestamp',how='outer')
+meterData = pd.merge(meterData,results['Allg'],on='Timestamp',how='outer')
+meterData = pd.merge(meterData,results['Solar'],on='Timestamp',how='outer')
+
+onePercent = math.floor(len(meterData)/100)
 
 meterData = meterData.diff()
 
@@ -77,10 +71,9 @@ meterData['Allg_Prod_Wh'] += (meterData['Solar_Prod_Wh'] * solarOwnershipAllg)
 
 meterData.drop(['Solar_Usage_Wh','Solar_Prod_Wh'], axis= 1, inplace=True)
 
-print('eigenverbrauch pro benutzer...')
 for i, row in meterData.iterrows():
-    if i%100 == 0:
-        print(f'Calculating eigenverbrauch {i} of {len(meterData)}...')
+    if i%onePercent == 0:
+        print(f'Calculating eigenverbrauch: {i/onePercent}%...', end='\r')
 
     for user in ['Home1', 'Home2', 'Allg']:
 
@@ -95,10 +88,11 @@ for i, row in meterData.iterrows():
 meterData['total_Usage_Wh'] = meterData['Home1_Usage_Wh'] + meterData['Home2_Usage_Wh'] + meterData['Allg_Usage_Wh']
 meterData['total_Prod_Wh'] = meterData['Home1_Prod_Wh'] + meterData['Home2_Prod_Wh'] + meterData['Allg_Prod_Wh']
 
-print('calc ovnership fractions...')
+print('Calculating eigenverbrauch done...                           ')
+
 for i, row in meterData.iterrows():
-    if i%100 == 0:
-        print(f'Calculating ovnership fraction {i} of {len(meterData)}...')
+    if i%onePercent == 0:
+        print(f'Calculating ovnership fraction: {i/onePercent}%...', end='\r')
 
     for user in ['Home1', 'Home2', 'Allg']:
         #calc prod and usage fraction
@@ -128,16 +122,14 @@ for i, row in meterData.iterrows():
         meterData.loc[i, f'{user}_sold_Wh'] = meterData.loc[i, 'total_Prod_Wh'] * meterData.loc[i, f'{user}_Prod_frac']
         meterData.loc[i, f'{user}_verbandUsage_Wh'] = meterData.loc[i, 'total_eigenV_Wh'] * meterData.loc[i, f'{user}_Usage_frac']
         meterData.loc[i, f'{user}_verbandProd_Wh'] = meterData.loc[i, 'total_eigenV_Wh'] * meterData.loc[i, f'{user}_Prod_frac']
-        
+
+print('Calculating ovnership fraction done...                           ')     
 
 meterData.sort_index(axis=1, inplace=True)
 
-#print(meterData.sum())
-#print(meterData.loc[150])
-
 for i, row in meterData.iterrows():
-    if i%100 == 0:
-        print(f'Testing entry {i} of {len(meterData)}...')
+    if i%onePercent == 0:
+        print(f'Testing entries: {i/onePercent}%...', end='\r')
 
     fracTotal = meterData.loc[i, 'Home1_Usage_frac'] + meterData.loc[i, 'Home2_Usage_frac'] + meterData.loc[i, 'Allg_Usage_frac']
     if fracTotal < 0.999 and fracTotal > 1.001:
@@ -161,7 +153,8 @@ for i, row in meterData.iterrows():
         if error < -0.001 and error > 0.001:
             print(f'usage not even on index {i} with {error}')
 
-print('===============================')
+print('Testing results done...                           ') 
+print('=========================================')
 print('Results:')   
 for user in ['Home1', 'Home2', 'Allg']:
     print(f' {user}:')
