@@ -171,7 +171,7 @@ class EmuMeter(TcpMeter):
         data = pd.DataFrame()
         count = 0
         for block in blocks2Read:
-            print(f"Reading block {count} of {len(blocks2Read)}...")
+            print(f"Reading block {count+1} of {len(blocks2Read)}...")
             newData = self.readSingleBlock(block[0], block[1])
             data = pd.concat([data, newData])
             count += 1
