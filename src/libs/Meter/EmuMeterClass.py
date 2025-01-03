@@ -102,7 +102,7 @@ class EmuMeter(TcpMeter):
                       "Active Energy Import L123 T1 [Wh]": "Energy_Export_Wh", 
                       "Active Energy Export L123 T1 [Wh]": "Energy_Import_Wh"}
     
-        data.rename(columns=colMap)
+        data.rename(columns=colMap,inplace=True)
 
         return data
     
@@ -169,8 +169,11 @@ class EmuMeter(TcpMeter):
         startIndex, stopIndex = self.calcIndex(startEpochTime, stopEpochTime)
         blocks2Read = self.splitIndexRange(startIndex, stopIndex)
         data = pd.DataFrame()
+        count = 0
         for block in blocks2Read:
+            print(f"Reading block {count+1} of {len(blocks2Read)}...")
             newData = self.readSingleBlock(block[0], block[1])
             data = pd.concat([data, newData])
+            count += 1
 
         return data
