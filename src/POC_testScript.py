@@ -14,13 +14,16 @@ from libs.Meter.EmuMeterClass import EmuMeter
 #stopTime = 1735081200
 
 #1.Sept - 24.Dez
-startTime = 1725062400
-stopTime = 1735081200
+#startTime = 1725062400
+#stopTime = 1735081200
 
-solarOwnershipHaus1 = 0
-solarOwnershipHaus2 = 1
-solarOwnershipAllg = 0
+#1.Sept - 31.Dez
+startTime = 1725141600
+stopTime = 1735686000
 
+owKey = {"solarOwnershipHome1":0,
+         "solarOwnershipHome2":1,
+         "solarOwnershipAllg":0}
 
 def getHost(name):
     with open('src/POC_meters.secret', 'r') as file:
@@ -54,7 +57,7 @@ for thread in threads:
     thread.join()
 
 print('Data complete...')
-print('=========================================')
+print('============================================')
 
 for name in names:
     results[name].rename(columns={'Energy_Import_Wh': f'{name}_Usage_Wh', 
@@ -67,19 +70,25 @@ meterData = pd.merge(meterData,results['Sum'],on='Timestamp',how='outer')
 
 onePercent = math.floor(len(meterData)/100)
 
-meterData = meterData.diff()
+print('Data Trends:')
+print(meterData.describe())
+print('===========================================')
+print('First entry:')
+print(meterData.loc[1])
+print('===========================================')
+print('First entry:')
+print(meterData.loc[len(meterData)-1])
+print('===========================================')
 
-#print(meterData.loc[2924])
+meterData = meterData.diff()
+print('Summs at beginning:')
+print(meterData.sum())
+print('===========================================')
 
 print('divide solar energy up for each user...')
-meterData['Home1_Usage_Wh'] += (meterData['Solar_Usage_Wh'] * solarOwnershipHaus1)
-meterData['Home1_Prod_Wh'] += (meterData['Solar_Prod_Wh'] * solarOwnershipHaus1)
-
-meterData['Home2_Usage_Wh'] += (meterData['Solar_Usage_Wh'] * solarOwnershipHaus2)
-meterData['Home2_Prod_Wh'] += (meterData['Solar_Prod_Wh'] * solarOwnershipHaus2)
-
-meterData['Allg_Usage_Wh'] += (meterData['Solar_Usage_Wh'] * solarOwnershipAllg)
-meterData['Allg_Prod_Wh'] += (meterData['Solar_Prod_Wh'] * solarOwnershipAllg)
+for user in ['Home1', 'Home2', 'Allg']:
+    meterData[f'{user}_Usage_Wh'] += (meterData['Solar_Usage_Wh'] * owKey[f'solarOwnership{user}'])
+    meterData[f'{user}_Prod_Wh'] += (meterData['Solar_Prod_Wh'] * owKey[f'solarOwnership{user}'])
 
 #meterData.drop(['Solar_Usage_Wh','Solar_Prod_Wh'], axis= 1, inplace=True)
 
@@ -87,7 +96,7 @@ for i, row in meterData.iterrows():
     if i%onePercent == 0:
         print(f'Calculating eigenverbrauch: {int(i/onePercent)}%...', end='\r')
 
-    for user in ['Home1', 'Home2', 'Allg', 'Sum']:
+    for user in ['Home1', 'Home2', 'Allg']:
 
         if meterData.loc[i, f'{user}_Usage_Wh'] < meterData.loc[i, f'{user}_Prod_Wh']:
             meterData.loc[i, f'{user}_eigenV_Wh'] = meterData.loc[i, f'{user}_Usage_Wh']
@@ -111,12 +120,12 @@ for i, row in meterData.iterrows():
         if meterData.loc[i, 'total_Usage_Wh'] != 0:
             meterData.loc[i, f'{user}_Usage_frac'] = meterData.loc[i, f'{user}_Usage_Wh'] / meterData.loc[i, 'total_Usage_Wh']
         else:
-            meterData.loc[i, f'{user}_Usage_frac'] = 0
+            meterData.loc[i, f'{user}_Usage_frac'] = owKey[f'solarOwnership{user}'] #maybe??
 
         if meterData.loc[i, 'total_Prod_Wh'] != 0:
             meterData.loc[i, f'{user}_Prod_frac'] = meterData.loc[i, f'{user}_Prod_Wh'] / meterData.loc[i, 'total_Prod_Wh']
         else:
-            meterData.loc[i, f'{user}_Prod_frac'] = 0
+            meterData.loc[i, f'{user}_Prod_frac'] = owKey[f'solarOwnership{user}']
 
     if meterData.loc[i, 'total_Usage_Wh'] > meterData.loc[i, 'total_Prod_Wh']:
         # buying energy
@@ -164,17 +173,23 @@ for i, row in meterData.iterrows():
     if soldEnergyBalance < -1 or soldEnergyBalance > 1:
         print(f' sold energy balance off on index {i} by {soldEnergyBalance}.')
 
-    """for user in ['Home1', 'Home2', 'Allg']:
+    for user in ['Home1', 'Home2', 'Allg']:
         error = meterData.loc[i, f'{user}_sold_Wh'] + meterData.loc[i, f'{user}_verbandProd_Wh'] - meterData.loc[i, f'{user}_Prod_Wh']
         if error < -0.001 or error > 0.001:
             print(f'production not even on index {i} with {error}')
             
         error = meterData.loc[i, f'{user}_bought_Wh'] + meterData.loc[i, f'{user}_verbandUsage_Wh'] - meterData.loc[i, f'{user}_Usage_Wh']
         if error < -0.001 or error > 0.001:
-            print(f'usage not even on index {i} with {error}')"""
+            print(f'     usage not even on index {i} with {error}')
 
 print('Testing results done...                           ') 
-print('=========================================')
+print('===========================================')
+'''print('Probe:')
+print(meterData.loc[10320])
+print('===========================================')'''
+print('Summs of each Value:')
+print(meterData.sum())
+print('===========================================')
 print('Results:')   
 for user in ['Home1', 'Home2', 'Allg']:
     print(f' {user}:')
@@ -189,4 +204,3 @@ for user in ['Home1', 'Home2', 'Allg']:
     data = int(meterData[f'{user}_eigenV_Wh'].sum()/1000)
     print(f'  Eigenverbauch: {data} kWh')
     print('')
-
