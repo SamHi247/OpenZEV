@@ -1,206 +1,175 @@
 import json
 import pandas as pd
-import numpy as np
 import threading
-import math
-
+from tqdm import tqdm
 from libs.Meter.EmuMeterClass import EmuMeter
-#Juli
-#startTime = 1719784800
-#stopTime = 1722463200
+import sys
 
-#10.Juni-24.Dez
-#startTime = 1718056800
-#stopTime = 1735081200
-
-#1.Sept - 24.Dez
-#startTime = 1725062400
-#stopTime = 1735081200
-
-#1.Sept - 31.Dez
-startTime = 1725141600
-stopTime = 1735686000
-
-owKey = {"solarOwnershipHome1":0,
-         "solarOwnershipHome2":1,
-         "solarOwnershipAllg":0}
-
-def getHost(name):
-    with open('src/POC_meters.secret', 'r') as file:
-        #print(json.load(file)[name])
-        # load IP-address of a testhose from secret json file.
-        # testHost.secret example content: {"host01": "XXX.XXX.XXX.XXX"}
-        return str(json.load(file)[name])
-
-def getMeterData(name, startTime, stopTime, results):
+def readOutMeterThread(name, host, startTime, stopTime, results):
     print(f'Start loading {name} data...')
     try:
+        # try to read from cache
         data = pd.read_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
     except:
-        meter = EmuMeter(getHost(name))
+        # download from meter and save to cache
+        meter = EmuMeter(host)
         data = meter.read(startTime,stopTime)
         data.to_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
 
     results[name] = data
     print(f'Loading of {name} data done.')
 
-names = ['Home1', 'Home2', 'Allg', 'Solar', 'Sum']
-results = {}
-threads = []
+def getEnergyData(startTime, stopTime):
+    meters = {}
+    results = {}
+    threads = []
 
-for name in names:
-    thread = threading.Thread(target=getMeterData, args=(name, startTime, stopTime, results))
-    threads.append(thread)
-    thread.start()
+    with open('src/POC_meters.secret', 'r') as file:
+        #print(json.load(file)[name])
+        # load IP-address of a testhose from secret json file.
+        # testHost.secret example content: {"host01": "XXX.XXX.XXX.XXX"}
+        meters = json.load(file)
 
-for thread in threads:
-    thread.join()
+    # start downloads as threads
+    for key in meters.keys():
+        thread = threading.Thread(target=readOutMeterThread, args=(key, meters[key], startTime, stopTime, results))
+        thread.daemon = True
+        threads.append(thread)
+        thread.start()
 
-print('Data complete...')
-print('============================================')
+    # wait for threads to be done
+    try:
+        threadsAlive = True
+        while threadsAlive:
+            threadsAlive = False
+            for thread in threads:
+                threadsAlive = threadsAlive or thread.is_alive()
+                thread.join(1)
+    except KeyboardInterrupt:
+        sys.exit(1)
 
-for name in names:
-    results[name].rename(columns={'Energy_Import_Wh': f'{name}_Usage_Wh', 
-                                  'Energy_Export_Wh': f'{name}_Prod_Wh'}, inplace=True)
+    print('Data complete...')
 
-meterData = pd.merge(results['Home1'],results['Home2'],on='Timestamp',how='outer')
-meterData = pd.merge(meterData,results['Allg'],on='Timestamp',how='outer')
-meterData = pd.merge(meterData,results['Solar'],on='Timestamp',how='outer')
-meterData = pd.merge(meterData,results['Sum'],on='Timestamp',how='outer')
-
-onePercent = math.floor(len(meterData)/100)
-
-print('Data Trends:')
-print(meterData.describe())
-print('===========================================')
-print('First entry:')
-print(meterData.loc[1])
-print('===========================================')
-print('First entry:')
-print(meterData.loc[len(meterData)-1])
-print('===========================================')
-
-meterData = meterData.diff()
-print('Summs at beginning:')
-print(meterData.sum())
-print('===========================================')
-
-print('divide solar energy up for each user...')
-for user in ['Home1', 'Home2', 'Allg']:
-    meterData[f'{user}_Usage_Wh'] += (meterData['Solar_Usage_Wh'] * owKey[f'solarOwnership{user}'])
-    meterData[f'{user}_Prod_Wh'] += (meterData['Solar_Prod_Wh'] * owKey[f'solarOwnership{user}'])
-
-#meterData.drop(['Solar_Usage_Wh','Solar_Prod_Wh'], axis= 1, inplace=True)
-
-for i, row in meterData.iterrows():
-    if i%onePercent == 0:
-        print(f'Calculating eigenverbrauch: {int(i/onePercent)}%...', end='\r')
-
-    for user in ['Home1', 'Home2', 'Allg']:
-
-        if meterData.loc[i, f'{user}_Usage_Wh'] < meterData.loc[i, f'{user}_Prod_Wh']:
-            meterData.loc[i, f'{user}_eigenV_Wh'] = meterData.loc[i, f'{user}_Usage_Wh']
-        else:
-            meterData.loc[i, f'{user}_eigenV_Wh'] = meterData.loc[i, f'{user}_Prod_Wh']
-
-        meterData.loc[i, f'{user}_Usage_Wh'] -= meterData.loc[i, f'{user}_eigenV_Wh']
-        meterData.loc[i, f'{user}_Prod_Wh'] -= meterData.loc[i, f'{user}_eigenV_Wh']
-
-meterData['total_Usage_Wh'] = meterData['Home1_Usage_Wh'] + meterData['Home2_Usage_Wh'] + meterData['Allg_Usage_Wh']
-meterData['total_Prod_Wh'] = meterData['Home1_Prod_Wh'] + meterData['Home2_Prod_Wh'] + meterData['Allg_Prod_Wh']
-
-print('Calculating eigenverbrauch done...                           ')
-
-for i, row in meterData.iterrows():
-    if i%onePercent == 0:
-        print(f'Calculating ovnership fraction: {int(i/onePercent)}%...', end='\r')
-
-    for user in ['Home1', 'Home2', 'Allg']:
-        #calc prod and usage fraction
-        if meterData.loc[i, 'total_Usage_Wh'] != 0:
-            meterData.loc[i, f'{user}_Usage_frac'] = meterData.loc[i, f'{user}_Usage_Wh'] / meterData.loc[i, 'total_Usage_Wh']
-        else:
-            meterData.loc[i, f'{user}_Usage_frac'] = owKey[f'solarOwnership{user}'] #maybe??
-
-        if meterData.loc[i, 'total_Prod_Wh'] != 0:
-            meterData.loc[i, f'{user}_Prod_frac'] = meterData.loc[i, f'{user}_Prod_Wh'] / meterData.loc[i, 'total_Prod_Wh']
-        else:
-            meterData.loc[i, f'{user}_Prod_frac'] = owKey[f'solarOwnership{user}']
-
-    if meterData.loc[i, 'total_Usage_Wh'] > meterData.loc[i, 'total_Prod_Wh']:
-        # buying energy
-        meterData.loc[i, 'total_eigenV_Wh'] = meterData.loc[i, 'total_Prod_Wh']
-    else:
-        # selling energy
-        meterData.loc[i, 'total_eigenV_Wh'] = meterData.loc[i, 'total_Usage_Wh']
-
-    #meterData.loc[i, 'total_Usage_Wh'] -= meterData.loc[i, 'total_eigenV_Wh']
-    #meterData.loc[i, 'total_Prod_Wh'] -= meterData.loc[i, 'total_eigenV_Wh']
+    # rename columns
+    for key in meters.keys():
+        results[key].rename(columns={'Energy_Import_Wh': f'{key}_meterIn', 
+                                    'Energy_Export_Wh': f'{key}_meterOut'}, inplace=True)
     
+    # merge data in to one DataFrame
+    meterData = pd.DataFrame()
+    for key in meters.keys():
+        try:
+            meterData = pd.merge(meterData,results[key],on='Timestamp',how='outer')
+        except:
+            meterData = results[key]
+    
+    # calculate diff
+    meterData.set_index('Timestamp', inplace=True)
+    meterData = meterData.diff()
+    meterData.reset_index(inplace=True)
 
-    for user in ['Home1', 'Home2', 'Allg']:
-        meterData.loc[i, f'{user}_bought_Wh'] = meterData.loc[i, 'Sum_Usage_Wh'] * meterData.loc[i, f'{user}_Usage_frac']
-        meterData.loc[i, f'{user}_sold_Wh'] = meterData.loc[i, 'Sum_Prod_Wh'] * meterData.loc[i, f'{user}_Prod_frac']
-        meterData.loc[i, f'{user}_verbandUsage_Wh'] = meterData.loc[i, 'total_eigenV_Wh'] * meterData.loc[i, f'{user}_Usage_frac']
-        meterData.loc[i, f'{user}_verbandProd_Wh'] = meterData.loc[i, 'total_eigenV_Wh'] * meterData.loc[i, f'{user}_Prod_frac']
+    return meterData
 
-print('Calculating ovnership fraction done...                           ')     
+def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
+    for i in tqdm(range(len(energyDF)), bar_format='{l_bar}{bar:20}{r_bar}', 
+                  desc ="Calculating energy data", smoothing = 0.1, mininterval = 0.5):
+        
+        # solar energy aufteilen
+        for key in consumerKeys:
+            if ownershipKey[key] > 0:
+                energyDF.loc[i,f'{key}_meterIn'] += (energyDF.loc[i,f'{solarKey}_meterIn'] * ownershipKey[key])
+                energyDF.loc[i,f'{key}_meterIn'] -= (energyDF.loc[i,f'{solarKey}_meterOut'] * ownershipKey[key])
 
-meterData.sort_index(axis=1, inplace=True)
+                if energyDF.loc[i, f'{key}_meterIn'] < 0:
+                    energyDF.loc[i, f'{key}_meterOut'] += (energyDF.loc[i, f'{key}_meterIn'] * -1)
+                    energyDF.loc[i, f'{key}_meterIn'] = 0
 
-for i, row in meterData.iterrows():
-    if i%onePercent == 0:
-        print(f'Testing entries: {int(i/onePercent)}%...', end='\r')
+        # calculate energy fraction
+        totalConsumedEnergy = 0
+        totalProducedEnergy = 0
+        for key in consumerKeys:
+            totalConsumedEnergy += energyDF.loc[i,f'{key}_meterIn']
+            totalProducedEnergy += energyDF.loc[i,f'{key}_meterOut']
 
-    fracTotal = meterData.loc[i, 'Home1_Usage_frac'] + meterData.loc[i, 'Home2_Usage_frac'] + meterData.loc[i, 'Allg_Usage_frac']
-    if fracTotal < 0.999 or fracTotal > 1.001:
-        print(f'usage fraction on index {i} not adding up: {fracTotal}')
+        '''if energyDF.loc[i,f'{ewKey}_meterOut'] > totalProducedEnergy:
+            #eigenUsage = -energyDF.loc[i,f'{ewKey}_meterOut']
+            diff = energyDF.loc[i,f'{ewKey}_meterOut'] - totalProducedEnergy
+            print(f'Alarm: {diff}')'''
 
-    fracTotal = meterData.loc[i, 'Home1_Prod_frac'] + meterData.loc[i, 'Home2_Prod_frac'] + meterData.loc[i, 'Allg_Prod_frac']
-    if (fracTotal < 0.999 or fracTotal > 1.001) and fracTotal != 0:
-        print(f'production fraction on index {i} not adding up: {fracTotal}')
+        for key in consumerKeys:
+            if totalConsumedEnergy != 0:
+                energyDF.loc[i,f'{key}_usedFrac'] = energyDF.loc[i,f'{key}_meterIn'] / totalConsumedEnergy
+            else:
+                energyDF.loc[i,f'{key}_usedFrac'] = 1/len(consumerKeys)
 
-    verbandUsage = meterData.loc[i, 'Home1_verbandUsage_Wh'] + meterData.loc[i, 'Home2_verbandUsage_Wh'] + meterData.loc[i, 'Allg_verbandUsage_Wh'] 
-    verbandProd = meterData.loc[i, 'Home1_verbandProd_Wh'] + meterData.loc[i, 'Home2_verbandProd_Wh'] + meterData.loc[i, 'Allg_verbandProd_Wh']
-    if (verbandUsage - verbandProd) > 0.001 or (verbandUsage - verbandProd) < -0.001:
-        print(f'verband Eigenverbrauch not adding up at index {i}: {(verbandUsage - verbandProd)}')
+            if totalProducedEnergy != 0:
+                energyDF.loc[i,f'{key}_prodFrac'] = energyDF.loc[i,f'{key}_meterOut'] / totalProducedEnergy
+            else:
+                energyDF.loc[i,f'{key}_prodFrac'] = ownershipKey[key]
 
-    boughtEnergyBalance = meterData.loc[i, 'Home1_bought_Wh'] + meterData.loc[i, 'Home2_bought_Wh'] + meterData.loc[i, 'Allg_bought_Wh'] - meterData.loc[i, 'Sum_Usage_Wh']
-    if boughtEnergyBalance < -1 or boughtEnergyBalance > 1:
-        print(f'bougt energy balance off on index {i} by {boughtEnergyBalance}.')
+            # split up energy     
+            energyDF.loc[i,f'{key}_boughtEn'] = energyDF.loc[i,f'{ewKey}_meterIn'] * energyDF.loc[i,f'{key}_usedFrac']
+            energyDF.loc[i,f'{key}_soldEn'] = energyDF.loc[i,f'{ewKey}_meterOut'] * energyDF.loc[i,f'{key}_prodFrac']
 
-    soldEnergyBalance = meterData.loc[i, 'Home1_sold_Wh'] + meterData.loc[i, 'Home2_sold_Wh'] + meterData.loc[i, 'Allg_sold_Wh'] - meterData.loc[i, 'Sum_Prod_Wh']
-    if soldEnergyBalance < -1 or soldEnergyBalance > 1:
-        print(f' sold energy balance off on index {i} by {soldEnergyBalance}.')
+            energyDF.loc[i,f'{key}_zevIn'] = energyDF.loc[i,f'{key}_meterIn'] - energyDF.loc[i,f'{key}_boughtEn']
+            energyDF.loc[i,f'{key}_zevOut'] = energyDF.loc[i,f'{key}_meterOut'] - energyDF.loc[i,f'{key}_soldEn']
 
-    for user in ['Home1', 'Home2', 'Allg']:
-        error = meterData.loc[i, f'{user}_sold_Wh'] + meterData.loc[i, f'{user}_verbandProd_Wh'] - meterData.loc[i, f'{user}_Prod_Wh']
-        if error < -0.001 or error > 0.001:
-            print(f'production not even on index {i} with {error}')
-            
-        error = meterData.loc[i, f'{user}_bought_Wh'] + meterData.loc[i, f'{user}_verbandUsage_Wh'] - meterData.loc[i, f'{user}_Usage_Wh']
-        if error < -0.001 or error > 0.001:
-            print(f'     usage not even on index {i} with {error}')
+    return energyDF
 
-print('Testing results done...                           ') 
-print('===========================================')
-'''print('Probe:')
-print(meterData.loc[10320])
-print('===========================================')'''
-print('Summs of each Value:')
-print(meterData.sum())
-print('===========================================')
-print('Results:')   
-for user in ['Home1', 'Home2', 'Allg']:
-    print(f' {user}:')
-    data = int(meterData[f'{user}_bought_Wh'].sum()/1000)
+def displayResults(energyDF, consumerKeys):
+    # print individual user stats
+    for user in consumerKeys:
+        print(f' {user}:')
+        data = int(energyDF[f'{user}_boughtEn'].sum()/1000)
+        print(f'       EW Bezug: {data} kWh')
+        data = int(energyDF[f'{user}_soldEn'].sum()/1000)
+        print(f'     EW Verkauf: {data} kWh')
+        data = int(energyDF[f'{user}_zevIn'].sum()/1000)
+        print(f'      ZEV Bezug: {data} kWh')
+        data = int(energyDF[f'{user}_zevOut'].sum()/1000)
+        print(f'     ZEV Einsp.: {data} kWh')
+        print('')
+
+    # print overall stats
+    print(' Stats:')
+    data = 0
+    for user in consumerKeys:
+        data += int(energyDF[f'{user}_boughtEn'].sum()/1000)
     print(f'       EW Bezug: {data} kWh')
-    data = int(meterData[f'{user}_sold_Wh'].sum()/1000)
-    print(f'     EW Verkauf: {data} kWh')
-    data = int(meterData[f'{user}_verbandUsage_Wh'].sum()/1000)
-    print(f'      ZEV Bezug: {data} kWh')
-    data = int(meterData[f'{user}_verbandProd_Wh'].sum()/1000)
-    print(f'     ZEV Einsp.: {data} kWh')
-    data = int(meterData[f'{user}_eigenV_Wh'].sum()/1000)
-    print(f'  Eigenverbauch: {data} kWh')
-    print('')
+    data = 0
+    for user in consumerKeys:
+        data += int(energyDF[f'{user}_soldEn'].sum()/1000)
+    print(f'      EW Einsp.: {data} kWh')
+    for user in consumerKeys:
+        print(f'          {user}:')
+        data = int(energyDF[f'{user}_boughtEn'].sum()/1000) + int(energyDF[f'{user}_zevIn'].sum()/1000)
+        print(f'               used: {data} kWh')
+        data = int(energyDF[f'{user}_soldEn'].sum()/1000) + int(energyDF[f'{user}_zevOut'].sum()/1000)
+        print(f'            prodced: {data} kWh')
+
+if __name__ == '__main__':
+    #Juli
+    #START_TIME = 1719784800
+    #STOP_TIME = 1722463200
+
+    #10.Juni-24.Dez
+    #START_TIME = 1718056800
+    #STOP_TIME = 1735081200
+
+    #1.Sept - 24.Dez
+    #START_TIME = 1725062400
+    #STOP_TIME = 1735081200
+
+    #1.Sept - 31.Dez
+    START_TIME = 1725141600
+    STOP_TIME = 1735686000
+
+    OW_KEY = {"Home1":0,
+              "Home2":1,
+              "Allg":0}
+
+    data = getEnergyData(START_TIME, STOP_TIME)
+    print('========================================================================================')
+    data = calculate(data,'Solar', 'EW', ['Home1', 'Home2', 'Allg'],OW_KEY)
+    print('========================================================================================')
+    displayResults(data,['Home1', 'Home2', 'Allg'])
