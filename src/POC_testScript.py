@@ -71,11 +71,15 @@ def getEnergyData(startTime, stopTime):
     return meterData
 
 def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
+    # calculation derived from here: https://www.bulletin.ch/de/news-detail/gerecht-abrechnen-bei-eigenverbrauch.html
     for i in tqdm(range(len(energyDF)), bar_format='{l_bar}{bar:20}{r_bar}', 
                   desc ="Calculating energy data", smoothing = 0.1, mininterval = 0.5):
         
-        # solar energy aufteilen
+        totalConsumedEnergy = 0
+        totalProducedEnergy = 0
+
         for key in consumerKeys:
+            # split solar energy
             if ownershipKey[key] > 0:
                 energyDF.loc[i,f'{key}_meterIn'] += (energyDF.loc[i,f'{solarKey}_meterIn'] * ownershipKey[key])
                 energyDF.loc[i,f'{key}_meterIn'] -= (energyDF.loc[i,f'{solarKey}_meterOut'] * ownershipKey[key])
@@ -83,36 +87,30 @@ def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
                 if energyDF.loc[i, f'{key}_meterIn'] < 0:
                     energyDF.loc[i, f'{key}_meterOut'] += (energyDF.loc[i, f'{key}_meterIn'] * -1)
                     energyDF.loc[i, f'{key}_meterIn'] = 0
-
-        # calculate energy fraction
-        totalConsumedEnergy = 0
-        totalProducedEnergy = 0
-        for key in consumerKeys:
+        
+            # calculate total energy consumtion and production
             totalConsumedEnergy += energyDF.loc[i,f'{key}_meterIn']
             totalProducedEnergy += energyDF.loc[i,f'{key}_meterOut']
 
-        '''if energyDF.loc[i,f'{ewKey}_meterOut'] > totalProducedEnergy:
-            #eigenUsage = -energyDF.loc[i,f'{ewKey}_meterOut']
-            diff = energyDF.loc[i,f'{ewKey}_meterOut'] - totalProducedEnergy
-            print(f'Alarm: {diff}')'''
+        # calc sold and bought energy fractions on energy bus
+        if totalConsumedEnergy != 0:
+            boughtEnergyFraction = energyDF.loc[i,f'{ewKey}_meterIn'] / totalConsumedEnergy
+        else:
+            boughtEnergyFraction = 1 / len(consumerKeys)
 
-        for key in consumerKeys:
-            if totalConsumedEnergy != 0:
-                energyDF.loc[i,f'{key}_usedFrac'] = energyDF.loc[i,f'{key}_meterIn'] / totalConsumedEnergy
-            else:
-                energyDF.loc[i,f'{key}_usedFrac'] = 1/len(consumerKeys)
+        if totalProducedEnergy != 0:
+            soldEnergyFraction = energyDF.loc[i,f'{ewKey}_meterOut'] / totalProducedEnergy
+        else:
+            soldEnergyFraction = 0
 
-            if totalProducedEnergy != 0:
-                energyDF.loc[i,f'{key}_prodFrac'] = energyDF.loc[i,f'{key}_meterOut'] / totalProducedEnergy
-            else:
-                energyDF.loc[i,f'{key}_prodFrac'] = ownershipKey[key]
-
-            # split up energy     
-            energyDF.loc[i,f'{key}_boughtEn'] = energyDF.loc[i,f'{ewKey}_meterIn'] * energyDF.loc[i,f'{key}_usedFrac']
-            energyDF.loc[i,f'{key}_soldEn'] = energyDF.loc[i,f'{ewKey}_meterOut'] * energyDF.loc[i,f'{key}_prodFrac']
-
-            energyDF.loc[i,f'{key}_zevIn'] = energyDF.loc[i,f'{key}_meterIn'] - energyDF.loc[i,f'{key}_boughtEn']
-            energyDF.loc[i,f'{key}_zevOut'] = energyDF.loc[i,f'{key}_meterOut'] - energyDF.loc[i,f'{key}_soldEn']
+        # split up energy    
+        for key in consumerKeys: 
+            # used energy
+            energyDF.loc[i,f'{key}_boughtEn'] = energyDF.loc[i,f'{key}_meterIn'] * boughtEnergyFraction
+            energyDF.loc[i,f'{key}_zevIn'] = energyDF.loc[i,f'{key}_meterIn'] * (1 - boughtEnergyFraction)
+            # produced energy
+            energyDF.loc[i,f'{key}_soldEn'] = energyDF.loc[i,f'{key}_meterOut'] * soldEnergyFraction
+            energyDF.loc[i,f'{key}_zevOut'] = energyDF.loc[i,f'{key}_meterOut'] * (1 - soldEnergyFraction)
 
     return energyDF
 
