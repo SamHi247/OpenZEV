@@ -6,18 +6,16 @@ from libs.Meter.EmuMeterClass import EmuMeter
 import sys
 
 def readOutMeterThread(name, host, startTime, stopTime, results):
-    print(f'Start loading {name} data...')
     try:
         # try to read from cache
         data = pd.read_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
     except:
         # download from meter and save to cache
         meter = EmuMeter(host)
-        data = meter.read(startTime,stopTime)
+        data = meter.read(startTime,stopTime,name)
         data.to_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
 
     results[name] = data
-    print(f'Loading of {name} data done.')
 
 def getEnergyData(startTime, stopTime):
     meters = {}
@@ -47,8 +45,6 @@ def getEnergyData(startTime, stopTime):
                 thread.join(1)
     except KeyboardInterrupt:
         sys.exit(1)
-
-    print('Data complete...')
 
     # rename columns
     for key in meters.keys():

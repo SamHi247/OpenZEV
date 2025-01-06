@@ -153,12 +153,13 @@ class EmuMeter(TcpMeter):
 
         return blocks2Read
     
-    def read(self, startEpochTime: int, stopEpochTime: int):
+    def read(self, startEpochTime: int, stopEpochTime: int, logName: str = ''):
         """Read all entries in a range of epoch time. No size limit, exept what is available on the meter.
 
         Args:
             startEpochTime (int): startTime in epoch
             stopEpochTime (int): stopTime in epoch
+            logName (str, optional): if a name is given, the process will be logged in the console
 
         Returns:
             pd.DataFrame: requested data as pandas DataFrame with the following columns:
@@ -169,11 +170,17 @@ class EmuMeter(TcpMeter):
         startIndex, stopIndex = self.calcIndex(startEpochTime, stopEpochTime)
         blocks2Read = self.splitIndexRange(startIndex, stopIndex)
         data = pd.DataFrame()
+
         count = 0
         for block in blocks2Read:
-            print(f"Reading block {count+1} of {len(blocks2Read)}...")
+            if logName != '':
+                print(f"Meter {logName}: Reading block {count+1} of {len(blocks2Read)}.")
+                
             newData = self.readSingleBlock(block[0], block[1])
             data = pd.concat([data, newData])
             count += 1
+        
+        if logName != '':
+            print(f"Meter {logName} done.")
 
         return data
