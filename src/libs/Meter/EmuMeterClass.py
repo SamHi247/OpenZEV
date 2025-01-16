@@ -3,6 +3,7 @@ import math
 
 from libs.Meter.meterClass import TcpMeter
 
+
 class EmuMeter(TcpMeter):
     LOG_INTERVAL = 15 * 60
     MAX_READBLOCK_SIZE = 3000
@@ -11,7 +12,9 @@ class EmuMeter(TcpMeter):
     currentTime = None
     readBlockSize = None
 
-    def __init__(self, host: str, invert: bool = False, readBlockSize: int = MAX_READBLOCK_SIZE):
+    def __init__(
+        self, host: str, invert: bool = False, readBlockSize: int = MAX_READBLOCK_SIZE
+    ):
         """Connect to a EMU Pro II power meter and set up all relevant Variables
 
         Args:
@@ -24,21 +27,23 @@ class EmuMeter(TcpMeter):
 
         """
         if readBlockSize < 1 and readBlockSize > self.MAX_READBLOCK_SIZE:
-            raise ValueError(f"A readBlockSize value of {readBlockSize} is not allowed. (0 < readBlockSize <= 3000")
+            raise ValueError(
+                f"A readBlockSize value of {readBlockSize} is not allowed. (0 < readBlockSize <= 3000"
+            )
 
-        super().__init__("EMU Pro II",host,invert)
+        super().__init__("EMU Pro II", host, invert)
 
         self.readBlockSize = readBlockSize
         self.LOG_INTERVAL = 15 * 60
 
         # get last log entry from meter
         url = "http://" + host + "/data/?last=1"
-        currentReading = pd.read_csv(url,delimiter=';')
+        currentReading = pd.read_csv(url, delimiter=";")
 
         # set up variables
-        currentReading['Timestamp'] = pd.to_datetime(currentReading['Timestamp'])
-        self.currentTime = currentReading['Timestamp'][0].timestamp()
-        self.currentIndex = currentReading['Index'][0]
+        currentReading["Timestamp"] = pd.to_datetime(currentReading["Timestamp"])
+        self.currentTime = currentReading["Timestamp"][0].timestamp()
+        self.currentIndex = currentReading["Index"][0]
 
     def readSingleBlock(self, startIndex: int, stopIndex: int):
         """Just read Entries from, to a specific index. The meter it self can't
@@ -56,56 +61,73 @@ class EmuMeter(TcpMeter):
             pd.DataFrame: Dataframe of requested data
         """
         if stopIndex < 0 or startIndex < 0:
-            raise ValueError(f"Negative Indexes are not allowed: start={startIndex}, stop={stopIndex}")
+            raise ValueError(
+                f"Negative Indexes are not allowed: start={startIndex}, stop={stopIndex}"
+            )
         if (stopIndex - startIndex) > self.MAX_READBLOCK_SIZE:
-            raise ValueError(f"It is impossible to read more than 3000 entrys at once. ({(stopIndex - startIndex)})")
-        
+            raise ValueError(
+                f"It is impossible to read more than 3000 entrys at once. ({(stopIndex - startIndex)})"
+            )
+
         # get data from meter
-        url = "http://" + self.hostName + "/data/?from=" + str(startIndex) + "&to=" + str(stopIndex)
-        rawMeterData = pd.read_csv(url,delimiter=';')
+        url = (
+            "http://"
+            + self.hostName
+            + "/data/?from="
+            + str(startIndex)
+            + "&to="
+            + str(stopIndex)
+        )
+        rawMeterData = pd.read_csv(url, delimiter=";")
 
         # clean up data
-        columnsToRemove = [ 'Index',
-                            'Status',
-                            'Serial',
-                            'Active Energy Import L123 T2 [Wh]',
-                            'Active Energy Export L123 T2 [Wh]',
-                            'Reactive Energy Import L123 T1 [varh]',
-                            'Reactive Energy Import L123 T2 [varh]',
-                            'Reactive Energy Export L123 T1 [varh]',
-                            'Reactive Energy Export L123 T2 [varh]',
-                            'Active Power L123 [W]',
-                            'Active Power L1 [W]',
-                            'Active Power L2 [W]',
-                            'Active Power L3 [W]',
-                            'Current L123 [mA]',
-                            'Current L1 [mA]',
-                            'Current L2 [mA]',
-                            'Current L3 [mA]',
-                            'Current N [mA]',
-                            'Voltage L1-N [1/10 V]',
-                            'Voltage L2-N [1/10 V]',
-                            'Voltage L3-N [1/10 V]',
-                            'Powerfactor L1 [1/100]',
-                            'Powerfactor L2 [1/100]',
-                            'Powerfactor L3 [1/100]',
-                            'Frequency [1/10 Hz]']
-        data = rawMeterData.drop(columnsToRemove, axis= 1)
-        data['Timestamp'] = pd.to_datetime(data['Timestamp'])
-        
+        columnsToRemove = [
+            "Index",
+            "Status",
+            "Serial",
+            "Active Energy Import L123 T2 [Wh]",
+            "Active Energy Export L123 T2 [Wh]",
+            "Reactive Energy Import L123 T1 [varh]",
+            "Reactive Energy Import L123 T2 [varh]",
+            "Reactive Energy Export L123 T1 [varh]",
+            "Reactive Energy Export L123 T2 [varh]",
+            "Active Power L123 [W]",
+            "Active Power L1 [W]",
+            "Active Power L2 [W]",
+            "Active Power L3 [W]",
+            "Current L123 [mA]",
+            "Current L1 [mA]",
+            "Current L2 [mA]",
+            "Current L3 [mA]",
+            "Current N [mA]",
+            "Voltage L1-N [1/10 V]",
+            "Voltage L2-N [1/10 V]",
+            "Voltage L3-N [1/10 V]",
+            "Powerfactor L1 [1/100]",
+            "Powerfactor L2 [1/100]",
+            "Powerfactor L3 [1/100]",
+            "Frequency [1/10 Hz]",
+        ]
+        data = rawMeterData.drop(columnsToRemove, axis=1)
+        data["Timestamp"] = pd.to_datetime(data["Timestamp"])
+
         if not (self.invertEnergyDirection):
-            colMap = {"Timestamp": "Timestamp", 
-                      "Active Energy Import L123 T1 [Wh]": "Energy_Import_Wh", 
-                      "Active Energy Export L123 T1 [Wh]": "Energy_Export_Wh"}
+            colMap = {
+                "Timestamp": "Timestamp",
+                "Active Energy Import L123 T1 [Wh]": "Energy_Import_Wh",
+                "Active Energy Export L123 T1 [Wh]": "Energy_Export_Wh",
+            }
         else:
-            colMap = {"Timestamp": "Timestamp", 
-                      "Active Energy Import L123 T1 [Wh]": "Energy_Export_Wh", 
-                      "Active Energy Export L123 T1 [Wh]": "Energy_Import_Wh"}
-    
-        data.rename(columns=colMap,inplace=True)
+            colMap = {
+                "Timestamp": "Timestamp",
+                "Active Energy Import L123 T1 [Wh]": "Energy_Export_Wh",
+                "Active Energy Export L123 T1 [Wh]": "Energy_Import_Wh",
+            }
+
+        data.rename(columns=colMap, inplace=True)
 
         return data
-    
+
     def calcIndex(self, startEpochTime: int, stopEpochTime: int):
         """calculate meter log index with a time range. Index overflow in the
         meter is not yet implemented.
@@ -123,12 +145,12 @@ class EmuMeter(TcpMeter):
 
         indexToStart = int(math.ceil(timeToStart / self.LOG_INTERVAL))
         indexToStop = int(math.ceil(timeToStop / self.LOG_INTERVAL))
-  
+
         startIndex = self.currentIndex - indexToStart
         stopIndex = self.currentIndex - indexToStop
 
         return int(startIndex), int(stopIndex)
-    
+
     def splitIndexRange(self, startIndex: int, stopIndex: int):
         """splits a range of idexes in to specified blocks
 
@@ -144,16 +166,21 @@ class EmuMeter(TcpMeter):
 
         blocks2Read = []
         for i in range(numOfSimpleReads):
-            if not i >= (numOfSimpleReads - 1): 
+            if not i >= (numOfSimpleReads - 1):
                 # add full block
-                blocks2Read.append([(i * self.readBlockSize) + startIndex, ((i + 1) * self.readBlockSize) + startIndex - 1])
+                blocks2Read.append(
+                    [
+                        (i * self.readBlockSize) + startIndex,
+                        ((i + 1) * self.readBlockSize) + startIndex - 1,
+                    ]
+                )
             else:
                 # add remaining
                 blocks2Read.append([(i * self.readBlockSize) + startIndex, stopIndex])
 
         return blocks2Read
-    
-    def read(self, startEpochTime: int, stopEpochTime: int, logName: str = ''):
+
+    def read(self, startEpochTime: int, stopEpochTime: int, logName: str = ""):
         """Read all entries in a range of epoch time. No size limit, exept what is available on the meter.
 
         Args:
@@ -173,14 +200,16 @@ class EmuMeter(TcpMeter):
 
         count = 0
         for block in blocks2Read:
-            if logName != '':
-                print(f"Meter {logName}: Reading block {count+1} of {len(blocks2Read)}.")
-                
+            if logName != "":
+                print(
+                    f"Meter {logName}: Reading block {count + 1} of {len(blocks2Read)}."
+                )
+
             newData = self.readSingleBlock(block[0], block[1])
             data = pd.concat([data, newData])
             count += 1
-        
-        if logName != '':
+
+        if logName != "":
             print(f"Meter {logName} done.")
 
         return data

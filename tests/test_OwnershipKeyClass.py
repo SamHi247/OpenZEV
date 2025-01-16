@@ -1,11 +1,10 @@
 import pytest
-import fnmatch
 from libs.energyConsumer.OwnershipKeyClass import OwnershipKey
 from libs.energyConsumer.EnergyConsumerClass import EnergyConsumer
 
 testConsumer1 = EnergyConsumer(None)
 testConsumer2 = EnergyConsumer(None)
-  
+
 
 def test_keyValidationGood():
     goodOwKey = OwnershipKey()
@@ -14,7 +13,8 @@ def test_keyValidationGood():
     goodOwKey.owners.append(testConsumer2)
     goodOwKey.shares.append(0.5)
 
-    assert goodOwKey.validateKey() == True
+    assert goodOwKey.validateKey()
+
 
 def test_keyValidationUniquenes():
     uniqueOwKey = OwnershipKey()
@@ -29,7 +29,10 @@ def test_keyValidationUniquenes():
         uniqueOwKey.validateKey()
     assert str(excinfo.value) == "Ownerkeys are not unique"
 
+
 OwnershipKey.shares
+
+
 def test_keyValidationArrayLen():
     arraylenOwKey = OwnershipKey()
     arraylenOwKey.owners.append(testConsumer1)
@@ -39,6 +42,7 @@ def test_keyValidationArrayLen():
     with pytest.raises(Warning) as excinfo:
         arraylenOwKey.validateKey()
     assert str(excinfo.value) == "key len = 2 does not match share len = 1."
+
 
 def test_keyValidationSharelimit():
     sharelimOwKey = OwnershipKey()
@@ -51,8 +55,8 @@ def test_keyValidationSharelimit():
         sharelimOwKey.validateKey()
     assert str(excinfo.value) == "Sum of shares exeeds 1: 1.1"
 
+
 def test_instancing():
-    
     sharelimOwKey1 = OwnershipKey()
     sharelimOwKey1.owners.append(testConsumer1)
     sharelimOwKey1.shares.append(0.5)
@@ -64,13 +68,16 @@ def test_instancing():
     assert sharelimOwKey1.owners[0] == testConsumer1
 
 
-
 def test_addingKey():
     addingKey = OwnershipKey()
     addingKey.addKey(testConsumer1, 0.5)
     addingKey.addKey(testConsumer2, 0.5)
 
-    assert addingKey.owners == [testConsumer1,testConsumer2] and addingKey.shares == [0.5,0.5]
+    assert addingKey.owners == [testConsumer1, testConsumer2] and addingKey.shares == [
+        0.5,
+        0.5,
+    ]
+
 
 def test_addingKeyValidity():
     addingKey = OwnershipKey()
@@ -81,26 +88,32 @@ def test_addingKeyValidity():
         addingKey.addKey(testConsumer2, 0.5)
     assert "Adding of owner failed:" in str(excinfo.value)
 
+
 def test_duplicateAvoidance():
     addingKey = OwnershipKey()
     addingKey.addKey(testConsumer1, 0.5)
     addingKey.addKey(testConsumer2, 0.5)
     addingKey.addKey(testConsumer1, 0.4)
-    
-    assert addingKey.owners == [testConsumer1,testConsumer2] and addingKey.shares == [0.4,0.5]
+
+    assert addingKey.owners == [testConsumer1, testConsumer2] and addingKey.shares == [
+        0.4,
+        0.5,
+    ]
+
 
 def test_removingKey():
     addingKey = OwnershipKey()
     addingKey.addKey(testConsumer1, 0.5)
     addingKey.addKey(testConsumer2, 0.5)
     addingKey.removeKey(testConsumer1)
-    
+
     assert addingKey.owners == [testConsumer2] and addingKey.shares == [0.5]
+
 
 def test_removingNonexKey():
     addingKey = OwnershipKey()
     addingKey.addKey(testConsumer1, 0.5)
-    
+
     with pytest.raises(Warning) as excinfo:
         addingKey.removeKey(testConsumer2)
     assert "Removing of owner failed:" in str(excinfo.value)
