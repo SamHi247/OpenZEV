@@ -1,15 +1,16 @@
 from libs.energyConsumer.EnergyConsumerClass import EnergyConsumer
 
-class OwnershipKey():
+
+class OwnershipKey:
     owners = []
     shares = []
 
-    def  __init__(self):
+    def __init__(self):
         self.owners = []
         self.shares = []
 
     def addKey(self, owner: EnergyConsumer, share: float):
-        """add a new owner tho the keymap. if the owner already exists, 
+        """add a new owner tho the keymap. if the owner already exists,
         the old value gets overwritten.
 
         Args:
@@ -28,13 +29,13 @@ class OwnershipKey():
             self.validateKey()
         except Exception as e:
             raise Warning(f"Adding of owner failed: {e}")
-        
+
     def removeKey(self, owner: EnergyConsumer):
         """remove a existing owner from the keymap
-        
+
         Args:
             owner (EnergyConsumer): owner to remove
-            
+
         Raises:
             Warning: if there was a problem removing the owner
         """
@@ -45,7 +46,7 @@ class OwnershipKey():
             self.validateKey()
         except Exception as e:
             raise Warning(f"Removing of owner failed: {e}")
-    
+
     def validateKey(self):
         """check if the keymap is valid
 
@@ -54,20 +55,22 @@ class OwnershipKey():
                 - unequal number of shares and owners
                 - duplicate owners
                 - sum of shares greater than 1
-        
+
         Returns:
             boolean: True if valid
         """
         if not len(self.shares) == len(self.owners):
-            raise Warning(f"key len = {len(self.owners)} does not match share len = {len(self.shares)}.")
+            raise Warning(
+                f"key len = {len(self.owners)} does not match share len = {len(self.shares)}."
+            )
 
         if not len(self.owners) == len(set(self.owners)):
-            raise Warning(f"Ownerkeys are not unique")
-        
+            raise Warning("Ownerkeys are not unique")
+
         sum = 0
         for share in self.shares:
             sum += share
         if sum > 1:
             raise Warning(f"Sum of shares exeeds 1: {sum}")
-        
+
         return True

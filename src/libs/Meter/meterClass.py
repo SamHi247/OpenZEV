@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class Meter:
     def __init__(self, meterType: str, invert: bool = False):
         """Connect to a power meter
@@ -25,9 +26,10 @@ class Meter:
                 - "Energy_Export_Wh"
         """
         raise NotImplementedError()
-    
+
+
 class TcpMeter(Meter):
-    def __init__(self,meterType: str, host: str, invert: bool = False):
+    def __init__(self, meterType: str, host: str, invert: bool = False):
         """Connect to a TCP power meter
 
         Args:
