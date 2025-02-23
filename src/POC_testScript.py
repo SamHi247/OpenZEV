@@ -118,6 +118,8 @@ def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
 
 def displayResults(energyDF, consumerKeys):
     # print individual user stats
+    print(energyDF)
+
     for user in consumerKeys:
         print(f' {user}:')
         data = int(energyDF[f'{user}_boughtEn'].sum()/1000)
@@ -161,7 +163,11 @@ if __name__ == '__main__':
     #STOP_TIME = 1735081200
 
     #1.Sept - 31.Dez
-    START_TIME = 1725141600
+    #START_TIME = 1725141600
+    #STOP_TIME = 1735686000
+
+    #25.Mai - 31.Dez
+    START_TIME = 1716588000
     STOP_TIME = 1735686000
 
     OW_KEY = {"Home1":0,
