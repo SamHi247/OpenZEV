@@ -4,6 +4,7 @@ import threading
 from tqdm import tqdm
 from libs.Meter.EmuMeterClass import EmuMeter
 import sys
+import logging
 
 
 def readOutMeterThread(name, host, startTime, stopTime, results):
@@ -12,8 +13,8 @@ def readOutMeterThread(name, host, startTime, stopTime, results):
         data = pd.read_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
     except Exception:
         # download from meter and save to cache
-        meter = EmuMeter(host)
-        data = meter.read(startTime, stopTime, name)
+        meter = EmuMeter(host, name)
+        data = meter.read(startTime, stopTime)
         data.to_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
 
     results[name] = data
@@ -182,6 +183,8 @@ def displayResults(energyDF, consumerKeys):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     # Juli
     # START_TIME = 1719784800
     # STOP_TIME = 1722463200

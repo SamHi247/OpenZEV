@@ -17,19 +17,19 @@ def getHost():
 
 
 if not getHost() == "NA":
-    meter = EmuMeter(getHost(), readBlockSize=4)
+    meter = EmuMeter(getHost(), read_block_size=4)
 else:
     meter = Meter("testMeter")
 
 
 def test_meterConnection():
     # test if timestamp of meter is close to system time
-    timeToLastRecord = meter.currentTime - int(time.time())
+    timeToLastRecord = meter.current_time - int(time.time())
     assert timeToLastRecord <= 30 * 60
 
 
 def test_indexSplit():
-    indexRange = meter.splitIndexRange(10, 20)
+    indexRange = meter.split_index_range(10, 20)
     assert indexRange == [[10, 13], [14, 17], [18, 20]]
 
 
@@ -37,7 +37,7 @@ def test_numberOfReturnedEntries():
     # a timeslot of 1h should contain 4 entries
     now = time.time()
     past = now - (60 * 60)
-    pastIndex, nowIndex = meter.calcIndex(past, now)
+    pastIndex, nowIndex = meter.calc_index(past, now)
     assert nowIndex - pastIndex == 4
 
 
@@ -47,8 +47,8 @@ def test_newestEntry():
     # executed right at XX:00, XX:15, XX:30 or XX:45
     now = time.time()
     past = now - (60 * 60)
-    _, nowIndex = meter.calcIndex(past, now)
-    assert nowIndex == meter.currentIndex
+    _, nowIndex = meter.calc_index(past, now)
+    assert nowIndex == meter.current_index
 
 
 def test_readLen():

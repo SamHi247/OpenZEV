@@ -1,57 +1,71 @@
 import pandas as pd
 import math
 
-from libs.Meter.meterClass import TcpMeter
+from libs.Meter.meterClass import Meter
 
 
-class EmuMeter(TcpMeter):
+class EmuMeter(Meter):
     LOG_INTERVAL = 15 * 60
     MAX_READBLOCK_SIZE = 3000
 
-    currentIndex = None
-    currentTime = None
-    readBlockSize = None
+    current_index = None
+    current_time = None
+    read_block_size = None
+    host_name = None
 
     def __init__(
-        self, host: str, invert: bool = False, readBlockSize: int = MAX_READBLOCK_SIZE
+        self,
+        host: str,
+        name: str,
+        invert: bool = False,
+        read_block_size: int = MAX_READBLOCK_SIZE,
     ):
         """Connect to a EMU Pro II power meter and set up all relevant Variables
 
         Args:
             host (str): hostname like IP-address of power meter
             invert (bool, optional): set "True" if Import an export on this meter are reversed
-            readBlockSize (int, optional): Size of request blocks sent to meter. Max is 3000. Defaults to 3000.
+            read_block_size (int, optional): Size of request blocks sent to meter. Max is 3000. Defaults to 3000.
 
         Raises:
             ValueError: if more than 3000 entries can be requested
 
         """
-        if readBlockSize < 1 and readBlockSize > self.MAX_READBLOCK_SIZE:
+        super().__init__("EMU Pro II", name, invert)
+
+        self.log.info(f"Setting up power meter {name} with host name {host} of type {self.meter_type}.")
+
+        if read_block_size < 1 and read_block_size > self.MAX_READBLOCK_SIZE:
             raise ValueError(
-                f"A readBlockSize value of {readBlockSize} is not allowed. (0 < readBlockSize <= 3000"
+                f"A readBlockSize value of {read_block_size} is not allowed. (0 < readBlockSize <= 3000"
             )
 
-        super().__init__("EMU Pro II", host, invert)
+        if read_block_size != self.MAX_READBLOCK_SIZE:
+            self.log.debug(f"Set read_block_size to {read_block_size}")
 
-        self.readBlockSize = readBlockSize
+        self.read_block_size = read_block_size
         self.LOG_INTERVAL = 15 * 60
 
         # get last log entry from meter
-        url = "http://" + host + "/data/?last=1"
-        currentReading = pd.read_csv(url, delimiter=";")
+        self.log.debug(f"Loading newest meter datapoint and setup")
+        self.host_name = host
+        url = "http://" + self.host_name + "/data/?last=1"
+        current_reading = pd.read_csv(url, delimiter=";")
 
         # set up variables
-        currentReading["Timestamp"] = pd.to_datetime(currentReading["Timestamp"])
-        self.currentTime = currentReading["Timestamp"][0].timestamp()
-        self.currentIndex = currentReading["Index"][0]
+        current_reading["Timestamp"] = pd.to_datetime(current_reading["Timestamp"])
+        self.current_time = current_reading["Timestamp"][0].timestamp()
+        self.current_index = current_reading["Index"][0]
 
-    def readSingleBlock(self, startIndex: int, stopIndex: int):
+        self.log.debug("Meter setup complete.")
+
+    def read_single_block(self, start_index: int, stop_index: int):
         """Just read Entries from, to a specific index. The meter it self can't
         deliver more than 3000 entries at once and there are no negative idexes.
 
         Args:
-            startIndex (int): first meter internal index do be read
-            stopIndex (int): last miter internal index to be read
+            start_index (int): first meter internal index do be read
+            stop_index (int): last miter internal index to be read
 
         Raises:
             ValueError: if more than 3000 entries are requested
@@ -60,28 +74,30 @@ class EmuMeter(TcpMeter):
         Returns:
             pd.DataFrame: Dataframe of requested data
         """
-        if stopIndex < 0 or startIndex < 0:
+        if stop_index < 0 or start_index < 0:
             raise ValueError(
-                f"Negative Indexes are not allowed: start={startIndex}, stop={stopIndex}"
+                f"Negative Indexes are not allowed: start={start_index}, stop={stop_index}"
             )
-        if (stopIndex - startIndex) > self.MAX_READBLOCK_SIZE:
+        if (stop_index - start_index) > self.MAX_READBLOCK_SIZE:
             raise ValueError(
-                f"It is impossible to read more than 3000 entrys at once. ({(stopIndex - startIndex)})"
+                f"It is impossible to read more than 3000 entrys at once. ({(stop_index - start_index)})"
             )
+        
+        self.log.debug(f"Reading block from {start_index} to {stop_index}.")
 
         # get data from meter
-        url = (
-            "http://"
-            + self.hostName
-            + "/data/?from="
-            + str(startIndex)
-            + "&to="
-            + str(stopIndex)
-        )
-        rawMeterData = pd.read_csv(url, delimiter=";")
+        url = "".join([
+            "http://",
+            self.host_name,
+            "/data/?from=",
+            str(start_index),
+            "&to=",
+            str(stop_index),
+        ])
+        raw_meter_data = pd.read_csv(url, delimiter=";")
 
         # clean up data
-        columnsToRemove = [
+        columns_to_remove = [
             "Index",
             "Status",
             "Serial",
@@ -108,85 +124,91 @@ class EmuMeter(TcpMeter):
             "Powerfactor L3 [1/100]",
             "Frequency [1/10 Hz]",
         ]
-        data = rawMeterData.drop(columnsToRemove, axis=1)
+        data = raw_meter_data.drop(columns_to_remove, axis=1)
         data["Timestamp"] = pd.to_datetime(data["Timestamp"])
 
-        if not (self.invertEnergyDirection):
-            colMap = {
+        if not (self.invert_energy_direction):
+            col_map = {
                 "Timestamp": "Timestamp",
                 "Active Energy Import L123 T1 [Wh]": "Energy_Import_Wh",
                 "Active Energy Export L123 T1 [Wh]": "Energy_Export_Wh",
             }
         else:
-            colMap = {
+            col_map = {
                 "Timestamp": "Timestamp",
                 "Active Energy Import L123 T1 [Wh]": "Energy_Export_Wh",
                 "Active Energy Export L123 T1 [Wh]": "Energy_Import_Wh",
             }
 
-        data.rename(columns=colMap, inplace=True)
+        data.rename(columns=col_map, inplace=True)
 
         return data
 
-    def calcIndex(self, startEpochTime: int, stopEpochTime: int):
+    def calc_index(self, start_epoch_time: int, stop_epoch_time: int):
         """calculate meter log index with a time range. Index overflow in the
         meter is not yet implemented.
 
         Args:
-            startEpochTime (int): startTime in epoch
-            stopEpochTime (int): stopTime in epoch
+            start_epoch_time (int): startTime in epoch
+            stop_epoch_time (int): stopTime in epoch
 
         Returns:
-            startIndex (int): meter index of last entry before or at startTime
-            stopIndex (int): meter index of last entry bevoe or at stopTime
+            start_index (int): meter index of last entry before or at startTime
+            stop_index (int): meter index of last entry bevoe or at stopTime
         """
-        timeToStart = self.currentTime - startEpochTime
-        timeToStop = self.currentTime - stopEpochTime
+        self.log.debug(f"Calculating index for time range {start_epoch_time} to {stop_epoch_time}.")
 
-        indexToStart = int(math.ceil(timeToStart / self.LOG_INTERVAL))
-        indexToStop = int(math.ceil(timeToStop / self.LOG_INTERVAL))
+        time_to_start = self.current_time - start_epoch_time
+        time_to_stop = self.current_time - stop_epoch_time
 
-        startIndex = self.currentIndex - indexToStart
-        stopIndex = self.currentIndex - indexToStop
+        index_to_start = int(math.ceil(time_to_start / self.LOG_INTERVAL))
+        index_to_stop = int(math.ceil(time_to_stop / self.LOG_INTERVAL))
 
-        return int(startIndex), int(stopIndex)
+        start_index = self.current_index - index_to_start
+        stop_index = self.current_index - index_to_stop
 
-    def splitIndexRange(self, startIndex: int, stopIndex: int):
+        return int(start_index), int(stop_index)
+
+    def split_index_range(self, start_index: int, stop_index: int):
         """splits a range of idexes in to specified blocks
 
         Args:
-            startIndex (int): first index
-            stopIndex (int): last index
+            start_index (int): first index
+            stop_index (int): last index
 
         Returns:
-            int[[]]: array of start/stop arrays for each split
+            [[start_index, stop_index]] (int): array of start/stop arrays for each split
         """
-        lenIndex = stopIndex - startIndex
-        numOfSimpleReads = math.ceil(lenIndex / self.readBlockSize)
+        len_index = stop_index - start_index
+        num_of_simple_reads = math.ceil(len_index / self.read_block_size)
 
-        blocks2Read = []
-        for i in range(numOfSimpleReads):
-            if not i >= (numOfSimpleReads - 1):
+        self.log.debug(f"Splitting index range {start_index} to {stop_index} in {num_of_simple_reads} blocks.")
+
+        blocks_to_read = []
+        for i in range(num_of_simple_reads):
+            if not i >= (num_of_simple_reads - 1):
                 # add full block
-                blocks2Read.append(
+                blocks_to_read.append(
                     [
-                        (i * self.readBlockSize) + startIndex,
-                        ((i + 1) * self.readBlockSize) + startIndex - 1,
+                        (i * self.read_block_size) + start_index,
+                        ((i + 1) * self.read_block_size) + start_index - 1,
                     ]
                 )
             else:
                 # add remaining
-                blocks2Read.append([(i * self.readBlockSize) + startIndex, stopIndex])
+                blocks_to_read.append(
+                    [(i * self.read_block_size) + start_index, stop_index]
+                )
 
-        return blocks2Read
+        return blocks_to_read
 
-    def read(self, startEpochTime: int, stopEpochTime: int, logName: str = ""):
+    def read(self, start_epoch_time: int, stop_epoch_time: int):
         """Read all entries in a range of epoch time. No size limit, exept what is available on the meter.
 
         Args:
-            startEpochTime (int): startTime in epoch
-            stopEpochTime (int): stopTime in epoch
-            logName (str, optional): if a name is given, the process will be logged in the console
+            start_epoch_time (int): startTime in epoch
+            stop_epoch_time (int): stopTime in epoch
+            log_name (str, optional): if a name is given, the process will be logged in the console
 
         Returns:
             pd.DataFrame: requested data as pandas DataFrame with the following columns:
@@ -194,22 +216,18 @@ class EmuMeter(TcpMeter):
                 - "Energy_Import_Wh"
                 - "Energy_Export_Wh"
         """
-        startIndex, stopIndex = self.calcIndex(startEpochTime, stopEpochTime)
-        blocks2Read = self.splitIndexRange(startIndex, stopIndex)
+        start_index, stop_index = self.calc_index(start_epoch_time, stop_epoch_time)
+        blocks_to_read = self.split_index_range(start_index, stop_index)
         data = pd.DataFrame()
 
         count = 0
-        for block in blocks2Read:
-            if logName != "":
-                print(
-                    f"Meter {logName}: Reading block {count + 1} of {len(blocks2Read)}."
-                )
+        for block in blocks_to_read:
+            self.log.info(f"Reading block {count} of {len(blocks_to_read)}")
 
-            newData = self.readSingleBlock(block[0], block[1])
-            data = pd.concat([data, newData])
+            new_data = self.read_single_block(block[0], block[1])
+            data = pd.concat([data, new_data])
             count += 1
 
-        if logName != "":
-            print(f"Meter {logName} done.")
+        self.log.info("Reading complete.")
 
         return data
