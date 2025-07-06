@@ -146,7 +146,6 @@ def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
 
 def displayResults(energyDF, consumerKeys):
     # print individual user stats
-    print(energyDF)
 
     for user in consumerKeys:
         print(f" {user}:")
@@ -200,8 +199,12 @@ if __name__ == "__main__":
     #STOP_TIME = 1735686000
 
     #25.Mai - 31.Dez
-    START_TIME = 1716588000
-    STOP_TIME = 1735686000
+    #START_TIME = 1716588000
+    #STOP_TIME = 1735686000
+    
+    # 01.Jab - 31.März
+    START_TIME = 1735686000
+    STOP_TIME = 1743372000
 
     OW_KEY = {"Home1": 0, "Home2": 1, "Allg": 0}
 
