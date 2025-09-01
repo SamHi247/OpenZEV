@@ -1,81 +1,11 @@
 import json
 import pandas as pd
-import threading
 from tqdm import tqdm
-from libs.Meter.EmuMeterClass import EmuMeter
-import sys
+from libs.Calculator.EnergyCalClass import EnergyCal
 import logging
 
 
-def readOutMeterThread(name, host, startTime, stopTime, results):
-    try:
-        # try to read from cache
-        data = pd.read_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
-    except Exception:
-        # download from meter and save to cache
-        meter = EmuMeter(host, name)
-        data = meter.read(startTime, stopTime)
-        data.to_pickle(f"cache/{name}_{startTime}_{stopTime}.secret")
 
-    results[name] = data
-
-
-def getEnergyData(startTime, stopTime):
-    meters = {}
-    results = {}
-    threads = []
-
-    with open("src/POC_meters.secret", "r") as file:
-        # print(json.load(file)[name])
-        # load IP-address of a testhose from secret json file.
-        # testHost.secret example content: {"host01": "XXX.XXX.XXX.XXX"}
-        meters = json.load(file)
-
-    # start downloads as threads
-    for key in meters.keys():
-        thread = threading.Thread(
-            target=readOutMeterThread,
-            args=(key, meters[key], startTime, stopTime, results),
-        )
-        thread.daemon = True
-        threads.append(thread)
-        thread.start()
-
-    # wait for threads to be done
-    try:
-        threadsAlive = True
-        while threadsAlive:
-            threadsAlive = False
-            for thread in threads:
-                threadsAlive = threadsAlive or thread.is_alive()
-                thread.join(1)
-    except KeyboardInterrupt:
-        sys.exit(1)
-
-    # rename columns
-    for key in meters.keys():
-        results[key].rename(
-            columns={
-                "Energy_Import_Wh": f"{key}_meterIn",
-                "Energy_Export_Wh": f"{key}_meterOut",
-            },
-            inplace=True,
-        )
-
-    # merge data in to one DataFrame
-    meterData = pd.DataFrame()
-    for key in meters.keys():
-        try:
-            meterData = pd.merge(meterData, results[key], on="Timestamp", how="outer")
-        except Exception:
-            meterData = results[key]
-
-    # calculate diff
-    meterData.set_index("Timestamp", inplace=True)
-    meterData = meterData.diff()
-    meterData.reset_index(inplace=True)
-
-    return meterData
 
 
 def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
@@ -93,34 +23,34 @@ def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
         for key in consumerKeys:
             # split solar energy
             if ownershipKey[key] > 0:
-                energyDF.loc[i, f"{key}_meterIn"] += (
-                    energyDF.loc[i, f"{solarKey}_meterIn"] * ownershipKey[key]
+                energyDF.loc[i, f"{key}_meterIn_Wh"] += (
+                    energyDF.loc[i, f"{solarKey}_meterIn_Wh"] * ownershipKey[key]
                 )
-                energyDF.loc[i, f"{key}_meterIn"] -= (
-                    energyDF.loc[i, f"{solarKey}_meterOut"] * ownershipKey[key]
+                energyDF.loc[i, f"{key}_meterIn_Wh"] -= (
+                    energyDF.loc[i, f"{solarKey}_meterOut_Wh"] * ownershipKey[key]
                 )
 
-                if energyDF.loc[i, f"{key}_meterIn"] < 0:
-                    energyDF.loc[i, f"{key}_meterOut"] += (
-                        energyDF.loc[i, f"{key}_meterIn"] * -1
+                if energyDF.loc[i, f"{key}_meterIn_Wh"] < 0:
+                    energyDF.loc[i, f"{key}_meterOut_Wh"] += (
+                        energyDF.loc[i, f"{key}_meterIn_Wh"] * -1
                     )
-                    energyDF.loc[i, f"{key}_meterIn"] = 0
+                    energyDF.loc[i, f"{key}_meterIn_Wh"] = 0
 
             # calculate total energy consumtion and production
-            totalConsumedEnergy += energyDF.loc[i, f"{key}_meterIn"]
-            totalProducedEnergy += energyDF.loc[i, f"{key}_meterOut"]
+            totalConsumedEnergy += energyDF.loc[i, f"{key}_meterIn_Wh"]
+            totalProducedEnergy += energyDF.loc[i, f"{key}_meterOut_Wh"]
 
         # calc sold and bought energy fractions on energy bus
         if totalConsumedEnergy != 0:
             boughtEnergyFraction = (
-                energyDF.loc[i, f"{ewKey}_meterIn"] / totalConsumedEnergy
+                energyDF.loc[i, f"{ewKey}_meterIn_Wh"] / totalConsumedEnergy
             )
         else:
             boughtEnergyFraction = 1 / len(consumerKeys)
 
         if totalProducedEnergy != 0:
             soldEnergyFraction = (
-                energyDF.loc[i, f"{ewKey}_meterOut"] / totalProducedEnergy
+                energyDF.loc[i, f"{ewKey}_meterOut_Wh"] / totalProducedEnergy
             )
         else:
             soldEnergyFraction = 0
@@ -129,16 +59,16 @@ def calculate(energyDF, solarKey, ewKey, consumerKeys, ownershipKey):
         for key in consumerKeys:
             # used energy
             energyDF.loc[i, f"{key}_boughtEn"] = (
-                energyDF.loc[i, f"{key}_meterIn"] * boughtEnergyFraction
+                energyDF.loc[i, f"{key}_meterIn_Wh"] * boughtEnergyFraction
             )
-            energyDF.loc[i, f"{key}_zevIn"] = energyDF.loc[i, f"{key}_meterIn"] * (
+            energyDF.loc[i, f"{key}_zevIn"] = energyDF.loc[i, f"{key}_meterIn_Wh"] * (
                 1 - boughtEnergyFraction
             )
             # produced energy
             energyDF.loc[i, f"{key}_soldEn"] = (
-                energyDF.loc[i, f"{key}_meterOut"] * soldEnergyFraction
+                energyDF.loc[i, f"{key}_meterOut_Wh"] * soldEnergyFraction
             )
-            energyDF.loc[i, f"{key}_zevOut"] = energyDF.loc[i, f"{key}_meterOut"] * (
+            energyDF.loc[i, f"{key}_zevOut"] = energyDF.loc[i, f"{key}_meterOut_Wh"] * (
                 1 - soldEnergyFraction
             )
 
@@ -184,6 +114,7 @@ def displayResults(energyDF, consumerKeys):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    calculator = EnergyCal()
 
     # Juli
     # START_TIME = 1719784800
@@ -211,7 +142,13 @@ if __name__ == "__main__":
 
     OW_KEY = {"Home1": 0, "Home2": 1, "Allg": 0}
 
-    data = getEnergyData(START_TIME, STOP_TIME)
+    with open("src/POC_meters.secret", "r") as file:
+        # print(json.load(file)[name])
+        # load IP-address of a testhose from secret json file.
+        # testHost.secret example content: {"host01": "XXX.XXX.XXX.XXX"}
+        meters = json.load(file)
+
+    data = calculator.getEnergyData(START_TIME, STOP_TIME, meters)
     print(
         "========================================================================================"
     )
