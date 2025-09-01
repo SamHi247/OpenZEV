@@ -17,9 +17,9 @@ def getHost():
 
 
 if not getHost() == "NA":
-    meter = EmuMeter(getHost(), read_block_size=4)
+    meter = EmuMeter(getHost(), "testMeter", read_block_size=4)
 else:
-    meter = Meter("testMeter")
+    meter = Meter("testMeter", "testMeter")
 
 
 def test_meterConnection():
@@ -70,3 +70,7 @@ def test_correctTime():
         f"1:{startTimeSmaller},2:{stopTimeSmaller},3:{startTimeIn15},4:{stopTimeIn15}"
     )
     assert startTimeSmaller and stopTimeSmaller and startTimeIn15 and stopTimeIn15
+
+
+def test_hostNaming():
+    assert "testMeter" == meter.meter_name

@@ -11,7 +11,6 @@ class EmuMeter(Meter):
     current_index = None
     current_time = None
     read_block_size = None
-    host_name = None
 
     def __init__(
         self,
@@ -33,7 +32,7 @@ class EmuMeter(Meter):
         """
         super().__init__("EMU Pro II", name, invert)
 
-        self.log.info(f"Setting up power meter {name} with host name {host} of type {self.meter_type}.")
+        self.log.info(f"Setting up power meter {name} with host address {host} of type {self.meter_type}.")
 
         if read_block_size < 1 and read_block_size > self.MAX_READBLOCK_SIZE:
             raise ValueError(
@@ -47,7 +46,7 @@ class EmuMeter(Meter):
         self.LOG_INTERVAL = 15 * 60
 
         # get last log entry from meter
-        self.log.debug(f"Loading newest meter datapoint and setup")
+        self.log.debug("Loading newest meter datapoint and setup")
         self.host_name = host
         url = "http://" + self.host_name + "/data/?last=1"
         current_reading = pd.read_csv(url, delimiter=";")

@@ -12,6 +12,7 @@ class Meter:
         """
         self.meter_type = meter_type
         self.invert_energy_direction = invert
+        self.meter_name = name
 
         self.log = logging.getLogger(f"{meter_type} | {name}")
 
