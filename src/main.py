@@ -3,7 +3,6 @@ import threading
 import sys
 import logging
 import json
-from tqdm import tqdm
 from typing import List
 from libs.Meter.EmuMeterClass import EmuMeter
 from libs.Meter.meterClass import Meter
@@ -32,13 +31,13 @@ def readOutMeterThread(
 
     try:
         # try to read from cache
-        data = pd.read_pickle(f"cache/{meter.meter_name}_{start_epoch_time}_{stop_epoch_time}.secret")
+        data = pd.read_pickle(f"cache/{meter.name}_{start_epoch_time}_{stop_epoch_time}.secret")
     except Exception:
         # download from meter and save to cache
         data = meter.read(start_epoch_time, stop_epoch_time)
-        data.to_pickle(f"cache/{meter.meter_name}_{start_epoch_time}_{stop_epoch_time}.secret")
+        data.to_pickle(f"cache/{meter.name}_{start_epoch_time}_{stop_epoch_time}.secret")
 
-    results[meter.meter_name] = data
+    results[meter.name] = data
 
 def getEnergyData(
     start_epoch_time: int,
@@ -48,8 +47,9 @@ def getEnergyData(
     """
     Collects and combines energy data from multiple meters over a specified time range.
 
-    Spawns threads to read data from each meter (using cache if available), renames columns for clarity,
-    merges all meter data into a single DataFrame, and calculates the difference between consecutive readings.
+    Spawns threads to read data from each meter (using cache if available), renames columns for 
+    clarity, merges all meter data into a single DataFrame, and calculates the difference between 
+    consecutive readings.
 
     Args:
         start_epoch_time (int): Start time in epoch seconds.
@@ -57,7 +57,8 @@ def getEnergyData(
         meters (List[Meter]): List of Meter objects.
 
     Returns:
-        pd.DataFrame: Combined DataFrame containing energy data from all meters, with columns renamed and differences calculated.
+        pd.DataFrame: Combined DataFrame containing energy data from all meters, with columns 
+        renamed and differences calculated.
     """
 
     results = {}
@@ -91,10 +92,10 @@ def getEnergyData(
 
     # rename columns
     for meter in meter_list:
-        results[meter.meter_name].rename(
+        results[meter.name].rename(
             columns={
-                "Energy_Import_Wh": f"{meter.meter_name}_meterIn_Wh",
-                "Energy_Export_Wh": f"{meter.meter_name}_meterOut_Wh",
+                "Energy_Import_Wh": f"{meter.name}_meterIn_Wh",
+                "Energy_Export_Wh": f"{meter.name}_meterOut_Wh",
             },
             inplace=True,
         )
@@ -104,12 +105,12 @@ def getEnergyData(
     for meter in meter_list:
         try:
             meterData = pd.merge(meterData, 
-                                    results[meter.meter_name], 
+                                    results[meter.name], 
                                     on="Timestamp", 
                                     how="outer",
                                     )
         except Exception:
-            meterData = results[meter.meter_name]
+            meterData = results[meter.name]
 
     # calculate diff
     meterData.set_index("Timestamp", inplace=True)
@@ -118,68 +119,63 @@ def getEnergyData(
 
     return meterData
 
-
 def calculate(energyDF: pd.DataFrame, userMeter_list: List[Meter], ewMeter: Meter):
-    # calculation derived from here: https://www.bulletin.ch/de/news-detail/gerecht-abrechnen-bei-eigenverbrauch.html
-    for i in tqdm(
-        range(len(energyDF)),
-        bar_format="{l_bar}{bar:20}{r_bar}",
-        desc="Calculating energy data",
-        smoothing=0.1,
-        mininterval=0.5,
-    ):
-        # calc total production
-        energyDF.loc[i, "totalProd_Wh"] = 0  
-        for meter in userMeter_list:
-            energyDF.loc[i, "totalProd_Wh"] += energyDF.loc[i, f"{meter.meter_name}_meterOut_Wh"]
+    """
+    Calculates energy distribution, consumption, and production for each user meter.
 
-        # calc energy sold
-        for meter in userMeter_list:
-            if not (energyDF.loc[i, "totalProd_Wh"] == 0):
-                energyDF.loc[i, f"{meter.meter_name}_EnSold_Wh"] = energyDF.loc[i, f"{ewMeter.meter_name}_meterOut_Wh"] * (
-                energyDF.loc[i, f"{meter.meter_name}_meterOut_Wh"] / energyDF.loc[i, "totalProd_Wh"]
-                )
-            else:
-                energyDF.loc[i, f"{meter.meter_name}_EnSold_Wh"] = 0
+    This function computes total production and consumption, energy sold and bought via the energy bus (EW),
+    internal energy exchanges between users, and meter error. It adds new columns to the DataFrame for
+    each user's bought/sold energy, internal energy transactions, and overall statistics.
+
+    Args:
+        energyDF (pd.DataFrame): DataFrame containing energy readings for all meters.
+        userMeter_list (List[Meter]): List of user Meter objects (excluding EW).
+        ewMeter (Meter): Meter object representing the energy bus (EW).
+
+    Returns:
+        pd.DataFrame: The input DataFrame with additional columns for energy calculations and statistics.
+    """
+    # calculation derived from here: 
+    # https://www.bulletin.ch/de/news-detail/gerecht-abrechnen-bei-eigenverbrauch.html
+    
+    # calc total production and consumption
+    energyDF["totalProd_Wh"] = 0  
+    energyDF["totalUse_Wh"] = 0
+    for meter in userMeter_list:
+        energyDF["totalProd_Wh"] += energyDF[f"{meter.name}_meterOut_Wh"]
+        energyDF["totalUse_Wh"] += energyDF[f"{meter.name}_meterIn_Wh"]
+
+    energyDF["eigenV_Wh"] = energyDF["totalProd_Wh"] - energyDF[f"{ewMeter.name}_meterOut_Wh"]
+    for meter in userMeter_list:
+        # calc energy sold and bought
+        energyDF[f"{meter.name}_EnSold_Wh"] = energyDF[f"{ewMeter.name}_meterOut_Wh"] * (
+            energyDF[f"{meter.name}_meterOut_Wh"] / energyDF["totalProd_Wh"])
+        energyDF[f"{meter.name}_EnBought_Wh"] = energyDF[f"{ewMeter.name}_meterIn_Wh"] * (
+            energyDF[f"{meter.name}_meterIn_Wh"] / energyDF["totalUse_Wh"])
 
         # calc eigenverbrauch enregy (can be combined with energy sold)
-        eigenverbrauch = energyDF.loc[i, "totalProd_Wh"] - energyDF.loc[i, f"{ewMeter.meter_name}_meterOut_Wh"]
-        for meter in userMeter_list:
-            if not (energyDF.loc[i, "totalProd_Wh"] == 0):
-                energyDF.loc[i, f"{meter.meter_name}_EnSoldInt_Wh"] = eigenverbrauch * (
-                    energyDF.loc[i, f"{meter.meter_name}_meterOut_Wh"] / energyDF.loc[i, "totalProd_Wh"]
-                )
-            else:
-                energyDF.loc[i, f"{meter.meter_name}_EnSoldInt_Wh"] = 0
+        energyDF[f"{meter.name}_EnSoldInt_Wh"] = energyDF["eigenV_Wh"] * (
+            energyDF[f"{meter.name}_meterOut_Wh"] / energyDF["totalProd_Wh"])
 
-        # calc total usage (can be combined with production)
-        energyDF.loc[i, "totalUse_Wh"] = 0  
-        for meter in userMeter_list:
-            energyDF.loc[i, "totalUse_Wh"] += energyDF.loc[i, f"{meter.meter_name}_meterIn_Wh"]
+    # calc eigenverbrauch energy
+    for meter in userMeter_list:
+        energyDF[f"{meter.name}_EnBoughtInt_Wh"] = (
+            energyDF[f"{meter.name}_meterIn_Wh"] - energyDF[f"{meter.name}_EnBought_Wh"])
+        internalFremdProduktion = 0
+        for meter2 in userMeter_list:
+            if not (meter.name == meter2.name):
+                internalFremdProduktion += energyDF[f"{meter2.name}_EnSoldInt_Wh"]
+        for meter2 in userMeter_list:
+            if not (meter.name == meter2.name):
+                energyDF[f"{meter2.name}_2_{meter.name}_EnBoughtInt_Wh"] = (
+                    energyDF[f"{meter2.name}_EnSoldInt_Wh"] * (
+                        energyDF[f"{meter.name}_EnBoughtInt_Wh"] / internalFremdProduktion))
 
-        # calc energy bought
-        for meter in userMeter_list:
-            if not (energyDF.loc[i, "totalUse_Wh"] == 0):
-                energyDF.loc[i, f"{meter.meter_name}_EnBought_Wh"] = energyDF.loc[i, f"{ewMeter.meter_name}_meterIn_Wh"] * (
-                energyDF.loc[i, f"{meter.meter_name}_meterIn_Wh"] / energyDF.loc[i, "totalUse_Wh"]
-                )
-            else:
-                energyDF.loc[i, f"{meter.meter_name}_EnBought_Wh"] = 0
-
-        # calc eigenverbrauch energy
-        for meter in userMeter_list:
-            energyDF.loc[i, f"{meter.meter_name}_EnBoughtInt_Wh"] = energyDF.loc[i, f"{meter.meter_name}_meterIn_Wh"] - energyDF.loc[i, f"{meter.meter_name}_EnBought_Wh"]
-            internalFremdProduktion = 0
-            for meter2 in userMeter_list:
-                if not (meter.meter_name == meter2.meter_name):
-                    internalFremdProduktion += energyDF.loc[i, f"{meter2.meter_name}_EnSoldInt_Wh"]
-            for meter2 in userMeter_list:
-                if not (meter.meter_name == meter2.meter_name):
-                    if not (internalFremdProduktion == 0):
-                        energyDF.loc[i, f"{meter2.meter_name}_2_{meter.meter_name}_EnBoughtInt_Wh"] = energyDF.loc[i, f"{meter2.meter_name}_EnSoldInt_Wh"] / internalFremdProduktion * energyDF.loc[i, f"{meter.meter_name}_EnBoughtInt_Wh"]
-                    else:
-                        energyDF.loc[i, f"{meter2.meter_name}_2_{meter.meter_name}_EnBoughtInt_Wh"] = 0
-
+    # calculate meter error    
+    energyDF["EnergyIn_Wh"] = energyDF["totalProd_Wh"] + energyDF[f"{ewMeter.name}_meterIn_Wh"]
+    energyDF["EnergyOut_Wh"] = energyDF["totalUse_Wh"] + energyDF[f"{ewMeter.name}_meterOut_Wh"]
+    energyDF["EnergyError_Wh"] = energyDF["EnergyIn_Wh"] - energyDF["EnergyOut_Wh"]
+    
     return energyDF
 
 def displayResults(energyDF, consumerKeys):
@@ -188,17 +184,22 @@ def displayResults(energyDF, consumerKeys):
     for user in consumerKeys:
         print(f" {user}:")
         data = energyDF[f"{user}_EnBought_Wh"].sum() / 1000
-        print(f"       EW Bezug: {data:.3f} kWh")
+        if data > 0: 
+            print(f"       EW Bezug: {data:.3f} kWh")
         data = energyDF[f"{user}_EnSold_Wh"].sum() / 1000
-        print(f"     EW Verkauf: {data:.3f} kWh")
+        if data > 0: 
+            print(f"     EW Verkauf: {data:.3f} kWh")
         data = energyDF[f"{user}_EnBoughtInt_Wh"].sum() / 1000
-        print(f"      ZEV Bezug: {data:.3f} kWh")
+        if data > 0: 
+            print(f"      ZEV Bezug: {data:.3f} kWh")
         for user2 in consumerKeys:
             if not (user == user2):
                 data = energyDF[f"{user2}_2_{user}_EnBoughtInt_Wh"].sum() / 1000
-                print(f"         ZEV Bezug von {user2}: {data:.3f} kWh")
+                if data > 0: 
+                    print(f"         - von {user2}: {data:.3f} kWh")
         data = energyDF[f"{user}_EnSoldInt_Wh"].sum() / 1000
-        print(f"     ZEV Einsp.: {data:.3f} kWh")
+        if data > 0: 
+            print(f"     ZEV Einsp.: {data:.3f} kWh")
         print("")
 
     # print overall stats
@@ -206,18 +207,24 @@ def displayResults(energyDF, consumerKeys):
     data = 0
     for user in consumerKeys:
         data += energyDF[f"{user}_EnBought_Wh"].sum() / 1000
-    print(f"       EW Bezug: {data:.3f} kWh")
+    if data > 0: 
+        print(f"       EW Bezug: {data:.3f} kWh")
     data = 0
     for user in consumerKeys:
         data += energyDF[f"{user}_EnSold_Wh"].sum() / 1000
-    print(f"      EW Einsp.: {data:.3f} kWh")
+    if data > 0: 
+        print(f"      EW Einsp.: {data:.3f} kWh")
+    data = energyDF["EnergyError_Wh"].sum() / 1000
+    if data > 0: 
+        print(f"    Meter Error: {data:.3f} kWh")
     for user in consumerKeys:
         print(f"          {user}:")
         data = energyDF[f"{user}_EnBought_Wh"].sum() / 1000 + energyDF[f"{user}_EnBoughtInt_Wh"].sum() / 1000
-        print(f"               used: {data:.3f} kWh")
+        if data > 0: 
+            print(f"               used: {data:.3f} kWh")
         data = energyDF[f"{user}_EnSold_Wh"].sum() / 1000 + energyDF[f"{user}_EnSoldInt_Wh"].sum() / 1000
-        print(f"            prodced: {data:.3f} kWh")
-
+        if data > 0: 
+            print(f"            prodced: {data:.3f} kWh")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
