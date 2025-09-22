@@ -73,4 +73,4 @@ def test_correctTime():
 
 
 def test_hostNaming():
-    assert "testMeter" == meter.meter_name
+    assert "testMeter" == meter.name
