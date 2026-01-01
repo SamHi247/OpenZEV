@@ -118,6 +118,32 @@ def getEnergyData(
     return meterData
 
 def combineMeters(energyDF: pd.DataFrame, importMeter: str, exportMeter: str):
+    """
+    Combines an import (consumption) meter and an export (production) meter into a single net meter.
+
+    For each timestamp, the export energy is offset against the import energy:
+    if production is lower than consumption, a net import remains;
+    if production is higher than consumption, a net export remains.
+    The resulting net values are assigned to the import meter.
+    The export meter is reset to zero after the combination.
+
+    Args:
+        energyDF (pd.DataFrame):
+            DataFrame containing energy readings for all meters.
+            Must include Import and Export columns for both meters
+            (e.g. "<meter>_Import_Wh" and "<meter>_Export_Wh").
+        importMeter (str):
+            Name of the meter representing consumption (import).
+            This meter will contain the resulting net import/export values.
+        exportMeter (str):
+            Name of the meter representing production or feed-in (export),
+            which is offset against the consumption meter.
+
+    Returns:
+        pd.DataFrame:
+            The input DataFrame with modified meter columns, where the import
+            meter contains the net energy values and the export meter is set to zero.
+    """
 
     # production < consumtion
     energyDF.loc[energyDF[f"{exportMeter}_Export_Wh"] < energyDF[f"{importMeter}_Import_Wh"], "temp_Export_Wh"] = 0
