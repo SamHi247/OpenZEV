@@ -1,7 +1,6 @@
 import pandas as pd
 import logging
 
-
 class Meter:
     def __init__(self, meter_type: str, name: str, invert: bool = False):
         """Connect to a power meter
@@ -26,8 +25,8 @@ class Meter:
         Returns:
             pd.DataFrame: requested data as pandas DataFrame with the following columns:
                 - "Timestamp"
-                - "Energy_Import_Wh"
-                - "Energy_Export_Wh"
+                - f"{self.name}_Import_Wh"
+                - f"{self.name}_Export_Wh"
         """
         self.log.warning("This read function belongs to the base class. Please override this function in the meter specific implementation.")
         raise NotImplementedError()

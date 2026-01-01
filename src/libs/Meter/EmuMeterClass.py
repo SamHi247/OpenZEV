@@ -1,8 +1,6 @@
 import pandas as pd
 import math
-
 from libs.Meter.meterClass import Meter
-
 
 class EmuMeter(Meter):
     LOG_INTERVAL = 15 * 60
@@ -32,7 +30,7 @@ class EmuMeter(Meter):
         """
         super().__init__("EMU Pro II", name, invert)
 
-        self.log.info(f"Setting up power meter {name} with host address {host} of type {self.meter_type}.")
+        self.log.info(f" Init meter with host address \"{host}\".")
 
         if read_block_size < 1 and read_block_size > self.MAX_READBLOCK_SIZE:
             raise ValueError(
@@ -40,13 +38,11 @@ class EmuMeter(Meter):
             )
 
         if read_block_size != self.MAX_READBLOCK_SIZE:
-            self.log.debug(f"Set read_block_size to {read_block_size}")
-
+            self.log.debug(f" Set read_block_size to {read_block_size}.")
         self.read_block_size = read_block_size
-        self.LOG_INTERVAL = 15 * 60
 
         # get last log entry from meter
-        self.log.debug("Loading newest meter datapoint and setup")
+        self.log.debug(" Loading newest meter datapoint and setup")
         self.host_name = host
         url = "http://" + self.host_name + "/data/?last=1"
         current_reading = pd.read_csv(url, delimiter=";")
@@ -82,7 +78,7 @@ class EmuMeter(Meter):
                 f"It is impossible to read more than 3000 entrys at once. ({(stop_index - start_index)})"
             )
         
-        self.log.debug(f"Reading block from {start_index} to {stop_index}.")
+        self.log.debug(f" Reading block from {start_index} to {stop_index}.")
 
         # get data from meter
         url = "".join([
@@ -129,14 +125,14 @@ class EmuMeter(Meter):
         if not (self.invert_energy_direction):
             col_map = {
                 "Timestamp": "Timestamp",
-                "Active Energy Import L123 T1 [Wh]": "Energy_Import_Wh",
-                "Active Energy Export L123 T1 [Wh]": "Energy_Export_Wh",
+                "Active Energy Import L123 T1 [Wh]": f"{self.name}_Import_Wh",
+                "Active Energy Export L123 T1 [Wh]": f"{self.name}_Export_Wh",
             }
         else:
             col_map = {
                 "Timestamp": "Timestamp",
-                "Active Energy Import L123 T1 [Wh]": "Energy_Export_Wh",
-                "Active Energy Export L123 T1 [Wh]": "Energy_Import_Wh",
+                "Active Energy Import L123 T1 [Wh]": f"{self.name}_Export_Wh",
+                "Active Energy Export L123 T1 [Wh]": f"{self.name}_Import_Wh",
             }
 
         data.rename(columns=col_map, inplace=True)
@@ -155,7 +151,7 @@ class EmuMeter(Meter):
             start_index (int): meter index of last entry before or at startTime
             stop_index (int): meter index of last entry bevoe or at stopTime
         """
-        self.log.debug(f"Calculating index for time range {start_epoch_time} to {stop_epoch_time}.")
+        self.log.debug(f" Calculating index for time range {start_epoch_time} to {stop_epoch_time}.")
 
         time_to_start = self.current_time - start_epoch_time
         time_to_stop = self.current_time - stop_epoch_time
@@ -165,6 +161,11 @@ class EmuMeter(Meter):
 
         start_index = self.current_index - index_to_start
         stop_index = self.current_index - index_to_stop
+
+        if (start_index < 0) or (stop_index < 0):
+            raise NotImplementedError(
+                "An index overflow has occurred. Handling of this overflow has not been implemented yet"
+            )
 
         return int(start_index), int(stop_index)
 
@@ -181,7 +182,7 @@ class EmuMeter(Meter):
         len_index = stop_index - start_index
         num_of_simple_reads = math.ceil(len_index / self.read_block_size)
 
-        self.log.debug(f"Splitting index range {start_index} to {stop_index} in {num_of_simple_reads} blocks.")
+        self.log.debug(f" Splitting index range {start_index} to {stop_index} in {num_of_simple_reads} blocks.")
 
         blocks_to_read = []
         for i in range(num_of_simple_reads):
@@ -212,8 +213,8 @@ class EmuMeter(Meter):
         Returns:
             pd.DataFrame: requested data as pandas DataFrame with the following columns:
                 - "Timestamp"
-                - "Energy_Import_Wh"
-                - "Energy_Export_Wh"
+                - f"{self.name}_Import_Wh"
+                - f"{self.name}_Export_Wh"
         """
         start_index, stop_index = self.calc_index(start_epoch_time, stop_epoch_time)
         blocks_to_read = self.split_index_range(start_index, stop_index)
@@ -221,12 +222,12 @@ class EmuMeter(Meter):
 
         count = 0
         for block in blocks_to_read:
-            self.log.info(f"Reading block {count} of {len(blocks_to_read)}")
+            self.log.info(f" Reading block {count} of {len(blocks_to_read)}")
 
             new_data = self.read_single_block(block[0], block[1])
             data = pd.concat([data, new_data])
             count += 1
 
-        self.log.info("Reading complete.")
+        self.log.info(" Reading complete.")
 
         return data
